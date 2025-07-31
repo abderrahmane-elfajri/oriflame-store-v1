@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O Store - API Debug</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Arial', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">🔧 API Debug & Test</h1>
+            
+            <!-- API Configuration -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <h2 class="text-lg font-semibold text-blue-800 mb-2">📊 Current Configuration</h2>
+                <p><strong>Spreadsheet ID:</strong> <code class="bg-gray-100 px-2 py-1 rounded">1LlYjTmwoqZCqkyOuXHpgy5PHKMFAoqcQXBqvt3qyxE8</code></p>
+                <p><strong>API Key:</strong> <code class="bg-gray-100 px-2 py-1 rounded">AIzaSyCzJE3U_XZhjVPukHjbVYmikwptj0sqY4k</code></p>
+            </div>
+
+            <!-- Quick Solutions -->
+            <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+                <h2 class="text-lg font-semibold text-orange-800 mb-2">🔧 Quick Fixes</h2>
+                <div class="text-sm text-orange-700 space-y-2">
+                    <p><strong>If getting 400 errors:</strong> Your spreadsheet might not have public access</p>
+                    <p><strong>Fix:</strong> Go to your Google Spreadsheet → Share → "Anyone with the link can view"</p>
+                    <p><strong>Alternative:</strong> Use our CORS-free solution (test-cors-free.html) that works without Google Sheets</p>
+                </div>
+            </div>
+
+            <!-- Test Buttons -->
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
+                <button onclick="checkPermissions()" class="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm">
+                    🔐 Check Permissions
+                </button>
+                <button onclick="testBasicConnection()" class="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                    🔗 Test Connection
+                </button>
+                <button onclick="listSheets()" class="bg-yellow-600 text-white px-3 py-2 rounded-lg hover:bg-yellow-700 transition-colors text-sm">
+                    📋 List Sheets
+                </button>
+                <button onclick="testProductsAPI()" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm">
+                    📦 Test Products
+                </button>
+                <button onclick="testCORSProxy()" class="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm">
+                    🌐 CORS Proxy
+                </button>
+            </div>
+
+            <!-- Results -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">📝 Test Results</h3>
+                <div id="results" class="text-sm text-gray-700 font-mono whitespace-pre-wrap">
+Ready to test...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            SPREADSHEET_ID: '1LlYjTmwoqZCqkyOuXHpgy5PHKMFAoqcQXBqvt3qyxE8',
+            SHEETS_API_KEY: 'AIzaSyCzJE3U_XZhjVPukHjbVYmikwptj0sqY4k'
+        };
+
+        function log(message) {
+            const results = document.getElementById('results');
+            const timestamp = new Date().toLocaleTimeString();
+            results.textContent += `[${timestamp}] ${message}\n`;
+            results.scrollTop = results.scrollHeight;
+            console.log(message);
+        }
+
+        function clearResults() {
+            document.getElementById('results').textContent = '';
+        }
+
+        async function checkPermissions() {
+            clearResults();
+            log('🔐 Checking spreadsheet permissions and API key...');
+            
+            // Test 1: Check if spreadsheet is publicly accessible
+            log('\n📋 Step 1: Testing spreadsheet access...');
+            const basicUrl = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}?key=${CONFIG.SHEETS_API_KEY}`;
+            
+            try {
+                const response = await fetch(basicUrl, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' },
+                    mode: 'cors'
+                });
+                
+                log(`📨 Response: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ SUCCESS! Spreadsheet: "${data.properties.title}"`);
+                    log(`📊 Found ${data.sheets.length} sheets`);
+                    
+                    // Test 2: Check specific sheet access
+                    if (data.sheets.length > 0) {
+                        const firstSheet = data.sheets[0].properties.title;
+                        log(`\n🔍 Step 2: Testing data access on sheet "${firstSheet}"...`);
+                        
+                        const dataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${encodeURIComponent(firstSheet)}!A1:Z1000?key=${CONFIG.SHEETS_API_KEY}`;
+                        
+                        try {
+                            const dataResponse = await fetch(dataUrl, {
+                                method: 'GET',
+                                headers: { 'Accept': 'application/json' },
+                                mode: 'cors'
+                            });
+                            
+                            if (dataResponse.ok) {
+                                const dataResult = await dataResponse.json();
+                                log(`✅ Data access SUCCESS!`);
+                                log(`📊 Rows found: ${dataResult.values ? dataResult.values.length : 0}`);
+                                
+                                if (dataResult.values && dataResult.values.length > 0) {
+                                    log(`📋 First row: ${JSON.stringify(dataResult.values[0])}`);
+                                }
+                            } else {
+                                const errorText = await dataResponse.text();
+                                log(`❌ Data access FAILED: ${dataResponse.status}`);
+                                log(`📝 Error: ${errorText}`);
+                            }
+                        } catch (dataError) {
+                            log(`💥 Data fetch error: ${dataError.message}`);
+                        }
+                    }
+                } else {
+                    const errorData = await response.text();
+                    log(`❌ FAILED: ${response.status}`);
+                    log(`📝 Error: ${errorData}`);
+                    
+                    if (response.status === 403) {
+                        log(`\n🚨 PERMISSION ISSUE DETECTED!`);
+                        log(`💡 Solutions:`);
+                        log(`   1. Make sure your Google Spreadsheet is publicly accessible`);
+                        log(`   2. Go to your spreadsheet → Share → Change to 'Anyone with the link can view'`);
+                        log(`   3. Verify your API key is correct and has Sheets API enabled`);
+                    } else if (response.status === 404) {
+                        log(`\n🚨 SPREADSHEET NOT FOUND!`);
+                        log(`💡 Check that the Spreadsheet ID is correct`);
+                    }
+                }
+            } catch (error) {
+                log(`💥 Connection error: ${error.message}`);
+                log(`🚨 Possible CORS issue or network problem`);
+            }
+        }
+
+        async function testBasicConnection() {
+            clearResults();
+            log('🔍 Testing basic Google Sheets API connection...');
+            
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}?key=${CONFIG.SHEETS_API_KEY}`;
+            
+            try {
+                log(`📡 Making request to: ${url}`);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    },
+                    mode: 'cors'
+                });
+                
+                log(`📨 Response status: ${response.status} ${response.statusText}`);
+                log(`📨 Response headers: ${JSON.stringify([...response.headers.entries()], null, 2)}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ SUCCESS! Spreadsheet title: ${data.properties.title}`);
+                    log(`📊 Sheets in spreadsheet: ${data.sheets.map(s => s.properties.title).join(', ')}`);
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ ERROR: ${response.status} - ${errorText}`);
+                }
+            } catch (error) {
+                log(`💥 FETCH ERROR: ${error.message}`);
+                log(`🔍 Error details: ${error.stack}`);
+            }
+        }
+
+        async function listSheets() {
+            clearResults();
+            log('📋 Listing all sheets in your spreadsheet...');
+            
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}?key=${CONFIG.SHEETS_API_KEY}`;
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    },
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ Found ${data.sheets.length} sheets in "${data.properties.title}":`);
+                    
+                    data.sheets.forEach((sheet, index) => {
+                        const sheetName = sheet.properties.title;
+                        const sheetId = sheet.properties.sheetId;
+                        log(`📄 Sheet ${index + 1}: "${sheetName}" (ID: ${sheetId})`);
+                    });
+                    
+                    log(`\n💡 Use one of these sheet names for your Products API test:`);
+                    data.sheets.forEach(sheet => {
+                        log(`   - "${sheet.properties.title}"`);
+                    });
+                    
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ ERROR: ${response.status} - ${errorText}`);
+                }
+            } catch (error) {
+                log(`💥 FETCH ERROR: ${error.message}`);
+            }
+        }
+
+        async function testProductsAPI() {
+            clearResults();
+            log('📦 Testing Products API with your actual sheet names...');
+            
+            // Your actual sheet names
+            const sheetNames = ['SHEETS_PRODUCTS', 'SHEETS_ORDERS', 'Products', 'Sheet1'];
+            
+            for (let sheetName of sheetNames) {
+                log(`\n🔍 Trying sheet: "${sheetName}"`);
+                
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}!A:E?key=${CONFIG.SHEETS_API_KEY}`;
+                
+                try {
+                    log(`📡 Making request to: ${url}`);
+                    
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                        },
+                        mode: 'cors'
+                    });
+                    
+                    log(`📨 Response status: ${response.status} ${response.statusText}`);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        log(`✅ SUCCESS with "${sheetName}"! Found ${data.values ? data.values.length : 0} rows`);
+                        
+                        if (data.values && data.values.length > 0) {
+                            log(`📋 Headers: ${JSON.stringify(data.values[0])}`);
+                            if (data.values.length > 1) {
+                                log(`📋 First row of data: ${JSON.stringify(data.values[1])}`);
+                            }
+                            log(`📊 Total rows: ${data.values.length}`);
+                            
+                            // Found working sheet, stop trying others
+                            log(`\n🎉 Use sheet name "${sheetName}" for your products!`);
+                            return;
+                        } else {
+                            log(`⚠️ Sheet "${sheetName}" exists but has no data.`);
+                            log(`💡 Add product data to this sheet following the setup guide.`);
+                        }
+                    } else {
+                        const errorText = await response.text();
+                        log(`❌ Sheet "${sheetName}" failed: ${response.status} - ${errorText}`);
+                    }
+                } catch (error) {
+                    log(`💥 Error with "${sheetName}": ${error.message}`);
+                }
+            }
+            
+            log(`\n💡 If all sheets are empty, follow the SPREADSHEET-SETUP.md guide to add product data.`);
+        }
+
+        async function testCORSProxy() {
+            clearResults();
+            log('🌐 Testing with CORS proxy...');
+            
+            const proxyUrl = 'https://api.allorigins.win/raw?url=';
+            const targetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/Products!A:E?key=${CONFIG.SHEETS_API_KEY}`;
+            const fullUrl = proxyUrl + encodeURIComponent(targetUrl);
+            
+            try {
+                log(`📡 Using proxy: ${proxyUrl}`);
+                log(`🎯 Target URL: ${targetUrl}`);
+                
+                const response = await fetch(fullUrl);
+                
+                log(`📨 Response status: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ SUCCESS via proxy! Found ${data.values ? data.values.length : 0} rows`);
+                    
+                    if (data.values) {
+                        log(`📋 Headers: ${JSON.stringify(data.values[0])}`);
+                        log(`📋 First product: ${JSON.stringify(data.values[1] || 'No data')}`);
+                    }
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ PROXY ERROR: ${response.status} - ${errorText}`);
+                }
+            } catch (error) {
+                log(`💥 PROXY FETCH ERROR: ${error.message}`);
+            }
+        }
+
+        // Auto-run basic test on load
+        window.addEventListener('load', () => {
+            log('🚀 API Debug tool loaded');
+            log('💡 Click the buttons above to test different connection methods');
+        });
+    </script>
+</body>
+</html>

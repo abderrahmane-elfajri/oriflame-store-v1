@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Google Sheets Raw Data Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold text-blue-600 mb-6">🔍 Google Sheets Raw Data Viewer</h1>
+        
+        <!-- Controls -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="loadRawData()" class="bg-blue-600 text-white p-3 rounded hover:bg-blue-700">
+                    <i class="fas fa-download mr-2"></i>Load Raw Data
+                </button>
+                <button onclick="addTestProduct()" class="bg-green-600 text-white p-3 rounded hover:bg-green-700">
+                    <i class="fas fa-plus mr-2"></i>Add Test Product
+                </button>
+                <button onclick="clearDisplay()" class="bg-gray-600 text-white p-3 rounded hover:bg-gray-700">
+                    <i class="fas fa-eraser mr-2"></i>Clear Display
+                </button>
+            </div>
+        </div>
+
+        <!-- Raw Data Display -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold">📊 Raw Google Sheets Data</h2>
+                <p class="text-sm text-gray-600">Direct data from your Google Sheets</p>
+            </div>
+            <div class="p-6">
+                <div id="raw-data" class="space-y-4">
+                    <div class="text-center text-gray-500">
+                        <i class="fas fa-download text-4xl mb-3"></i>
+                        <p>Click "Load Raw Data" to see your Google Sheets data</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parsed Data Display -->
+        <div class="bg-white rounded-lg shadow mt-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold">🔧 Parsed Products</h2>
+                <p class="text-sm text-gray-600">How the raw data gets converted to products</p>
+            </div>
+            <div class="p-6">
+                <div id="parsed-data" class="space-y-4">
+                    <div class="text-center text-gray-500">
+                        <i class="fas fa-cogs text-4xl mb-3"></i>
+                        <p>Parsed data will appear here after loading raw data</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Test Results -->
+        <div class="bg-white rounded-lg shadow mt-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold">🧪 API Test Results</h2>
+                <p class="text-sm text-gray-600">Testing different API methods</p>
+            </div>
+            <div class="p-6">
+                <div id="api-results" class="space-y-4">
+                    <!-- Results will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            SPREADSHEET_ID: '1LlYjTmwoqZCqkyOuXHpgy5PHKMFAoqcQXBqvt3qyxE8',
+            SHEETS_API_KEY: 'AIzaSyCzJE3U_XZhjVPukHjbVYmikwptj0sqY4k',
+            PRODUCTS_SHEET: 'SHEETS_PRODUCTS',
+            GOOGLE_APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxeIRYYO00PSS-R1yHv_qNbnZwCTt0SzOvutKRVGQfKlk2VsmAKHR4VYhBdci8k4SXIEA/exec'
+        };
+
+        // Load raw data from Google Sheets
+        async function loadRawData() {
+            try {
+                addAPIResult('info', '🔄 Loading raw data from Google Sheets...');
+                
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${CONFIG.PRODUCTS_SHEET}!A:G?key=${CONFIG.SHEETS_API_KEY}`;
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                addAPIResult('success', `✅ Raw data loaded: ${data.values ? data.values.length : 0} rows`);
+                
+                // Display raw data
+                displayRawData(data.values || []);
+                
+                // Parse and display products
+                if (data.values && data.values.length > 1) {
+                    const products = parseProducts(data.values);
+                    displayParsedData(products);
+                    addAPIResult('success', `✅ Parsed ${products.length} products`);
+                } else {
+                    addAPIResult('warning', '⚠️ No data rows found (only headers or empty)');
+                    displayParsedData([]);
+                }
+                
+            } catch (error) {
+                addAPIResult('error', `❌ Error loading data: ${error.message}`);
+                console.error('Error:', error);
+            }
+        }
+
+        // Display raw data in a table
+        function displayRawData(values) {
+            const container = document.getElementById('raw-data');
+            
+            if (!values || values.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-red-500">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-3"></i>
+                        <p>No data found in Google Sheets</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create table
+            let tableHTML = `
+                <div class="overflow-x-auto">
+                    <table class="min-w-full border border-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="border border-gray-300 px-4 py-2 text-left font-semibold">Row</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left font-semibold">A (ID)</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left font-semibold">B (Name)</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left font-semibold">C (Price)</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left font-semibold">D (Category)</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left font-semibold">E (Image)</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left font-semibold">F (Description)</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left font-semibold">G (Created)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            values.forEach((row, index) => {
+                const rowClass = index === 0 ? 'bg-blue-50' : (index % 2 === 0 ? 'bg-white' : 'bg-gray-50');
+                tableHTML += `<tr class="${rowClass}">`;
+                tableHTML += `<td class="border border-gray-300 px-4 py-2 font-mono text-sm">${index}</td>`;
+                
+                for (let i = 0; i < 7; i++) {
+                    const cellValue = row[i] || '';
+                    const displayValue = cellValue.length > 30 ? cellValue.substring(0, 30) + '...' : cellValue;
+                    tableHTML += `<td class="border border-gray-300 px-4 py-2 text-sm" title="${cellValue}">${displayValue}</td>`;
+                }
+                
+                tableHTML += `</tr>`;
+            });
+            
+            tableHTML += `
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4 text-sm text-gray-600">
+                    <p><strong>Total rows:</strong> ${values.length} (including header)</p>
+                    <p><strong>Data rows:</strong> ${values.length - 1}</p>
+                </div>
+            `;
+            
+            container.innerHTML = tableHTML;
+        }
+
+        // Parse products from raw data
+        function parseProducts(values) {
+            const products = [];
+            
+            // Skip header row, start from row 1
+            for (let i = 1; i < values.length; i++) {
+                const row = values[i];
+                if (!row || row.length === 0) continue;
+                
+                // Based on your Google Sheets structure:
+                // A: ID, B: Name, C: Price, D: Category, E: Image_URL, F: Description, G: Created
+                const product = {
+                    rowIndex: i,
+                    id: row[0] || i,
+                    name: row[1] || '',
+                    price: row[2] || '',
+                    category: row[3] || '',
+                    image: row[4] || '',
+                    description: row[5] || '',
+                    created: row[6] || ''
+                };
+                
+                // Add product even if some fields are empty (for debugging)
+                products.push(product);
+            }
+            
+            return products;
+        }
+
+        // Display parsed data
+        function displayParsedData(products) {
+            const container = document.getElementById('parsed-data');
+            
+            if (products.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-yellow-500">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-3"></i>
+                        <p>No products parsed from the data</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const productsHTML = products.map(product => `
+                <div class="border rounded-lg p-4 ${product.name ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                        <div><strong>Row:</strong> ${product.rowIndex}</div>
+                        <div><strong>ID:</strong> ${product.id}</div>
+                        <div class="${product.name ? 'text-green-700' : 'text-red-700'}">
+                            <strong>Name:</strong> ${product.name || '(empty)'}
+                        </div>
+                        <div><strong>Price:</strong> ${product.price || '(empty)'}</div>
+                        <div><strong>Category:</strong> ${product.category || '(empty)'}</div>
+                        <div><strong>Image:</strong> ${product.image ? (product.image.length > 20 ? product.image.substring(0, 20) + '...' : product.image) : '(empty)'}</div>
+                        <div class="col-span-2"><strong>Description:</strong> ${product.description || '(empty)'}</div>
+                    </div>
+                    ${product.name ? '<div class="mt-2 text-xs text-green-700">✅ Valid product</div>' : '<div class="mt-2 text-xs text-red-700">❌ Missing name (will be filtered out)</div>'}
+                </div>
+            `).join('');
+            
+            const validProducts = products.filter(p => p.name && p.name.trim() !== '');
+            
+            container.innerHTML = `
+                <div class="mb-4 p-4 bg-blue-50 rounded-lg">
+                    <h3 class="font-semibold text-blue-800 mb-2">Summary</h3>
+                    <p class="text-sm text-blue-700">Total rows: ${products.length}</p>
+                    <p class="text-sm text-blue-700">Valid products (with name): ${validProducts.length}</p>
+                    <p class="text-sm text-blue-700">Empty/invalid products: ${products.length - validProducts.length}</p>
+                </div>
+                ${productsHTML}
+            `;
+        }
+
+        // Add test product to Google Sheets
+        async function addTestProduct() {
+            try {
+                addAPIResult('info', '🔄 Adding test product to Google Sheets...');
+                
+                const testProduct = {
+                    action: 'addProduct',
+                    product: {
+                        id: Date.now(),
+                        name: `Test Product ${new Date().getTime()}`,
+                        price: '1500 DA',
+                        category: 'Test',
+                        image: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=300',
+                        description: 'This is a test product added from diagnostic tool',
+                        created: new Date().toISOString()
+                    },
+                    timestamp: new Date().toISOString()
+                };
+                
+                const response = await fetch(CONFIG.GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testProduct)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                addAPIResult('success', `✅ Test product added: ${JSON.stringify(result)}`);
+                
+                // Reload data after adding
+                setTimeout(() => {
+                    loadRawData();
+                }, 2000);
+                
+            } catch (error) {
+                addAPIResult('error', `❌ Error adding test product: ${error.message}`);
+            }
+        }
+
+        // Add API result
+        function addAPIResult(type, message) {
+            const container = document.getElementById('api-results');
+            const resultDiv = document.createElement('div');
+            
+            const colors = {
+                info: 'bg-blue-50 border-blue-200 text-blue-800',
+                success: 'bg-green-50 border-green-200 text-green-800',
+                error: 'bg-red-50 border-red-200 text-red-800',
+                warning: 'bg-yellow-50 border-yellow-200 text-yellow-800'
+            };
+            
+            resultDiv.className = `border rounded-lg p-3 ${colors[type]}`;
+            resultDiv.innerHTML = `<p class="text-sm font-mono">${new Date().toLocaleTimeString()} - ${message}</p>`;
+            
+            container.appendChild(resultDiv);
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Clear display
+        function clearDisplay() {
+            document.getElementById('raw-data').innerHTML = `
+                <div class="text-center text-gray-500">
+                    <i class="fas fa-download text-4xl mb-3"></i>
+                    <p>Click "Load Raw Data" to see your Google Sheets data</p>
+                </div>
+            `;
+            document.getElementById('parsed-data').innerHTML = `
+                <div class="text-center text-gray-500">
+                    <i class="fas fa-cogs text-4xl mb-3"></i>
+                    <p>Parsed data will appear here after loading raw data</p>
+                </div>
+            `;
+            document.getElementById('api-results').innerHTML = '';
+        }
+
+        // Auto-load on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            addAPIResult('info', '🔍 Google Sheets Raw Data Viewer loaded');
+            loadRawData();
+        });
+    </script>
+</body>
+</html>

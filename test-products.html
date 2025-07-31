@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Test Produits - O Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-green-600 mb-6">🧪 Test de Chargement des Produits</h1>
+        
+        <!-- Test Buttons -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Tests Disponibles</h2>
+            <div class="space-y-3">
+                <button onclick="testAPIManager()" class="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700">
+                    <i class="fas fa-cog mr-2"></i>Test API Manager
+                </button>
+                <button onclick="testDirectAPI()" class="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700">
+                    <i class="fas fa-cloud mr-2"></i>Test Direct Google Sheets API
+                </button>
+                <button onclick="testMainWebsite()" class="w-full bg-purple-600 text-white p-3 rounded hover:bg-purple-700">
+                    <i class="fas fa-globe mr-2"></i>Test Script Principal
+                </button>
+                <button onclick="clearResults()" class="w-full bg-gray-600 text-white p-3 rounded hover:bg-gray-700">
+                    <i class="fas fa-trash mr-2"></i>Effacer les Résultats
+                </button>
+            </div>
+        </div>
+        
+        <!-- Results -->
+        <div id="results" class="space-y-4">
+            <!-- Results will appear here -->
+        </div>
+    </div>
+
+    <!-- Include API Scripts -->
+    <script src="api-manager.js"></script>
+    <script src="script.js"></script>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            SPREADSHEET_ID: '1LlYjTmwoqZCqkyOuXHpgy5PHKMFAoqcQXBqvt3qyxE8',
+            SHEETS_API_KEY: 'AIzaSyCzJE3U_XZhjVPukHjbVYmikwptj0sqY4k',
+            PRODUCTS_SHEET: 'SHEETS_PRODUCTS'
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🧪 Test page loaded');
+            addResult('info', '✅ Page de test chargée');
+        });
+
+        // Test API Manager
+        async function testAPIManager() {
+            addResult('info', '🔄 Test API Manager...');
+            
+            try {
+                if (typeof OStoreAPIManager === 'undefined') {
+                    throw new Error('API Manager non disponible');
+                }
+                
+                const apiManager = new OStoreAPIManager();
+                const result = await apiManager.getProducts();
+                
+                if (result.success && result.products) {
+                    addResult('success', `✅ API Manager: ${result.products.length} produits trouvés`);
+                    addResult('data', JSON.stringify(result.products, null, 2));
+                } else {
+                    addResult('error', `❌ API Manager: ${result.error || 'Aucun produit'}`);
+                }
+                
+            } catch (error) {
+                addResult('error', `❌ API Manager Error: ${error.message}`);
+            }
+        }
+
+        // Test Direct API
+        async function testDirectAPI() {
+            addResult('info', '🔄 Test Direct Google Sheets API...');
+            
+            try {
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${CONFIG.PRODUCTS_SHEET}!A:G?key=${CONFIG.SHEETS_API_KEY}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.values && data.values.length > 1) {
+                    const products = parseProductsFromSheetsTest(data.values);
+                    addResult('success', `✅ Direct API: ${products.length} produits trouvés`);
+                    addResult('data', JSON.stringify(products, null, 2));
+                } else {
+                    addResult('error', '❌ Direct API: Aucune donnée trouvée');
+                    addResult('data', JSON.stringify(data, null, 2));
+                }
+                
+            } catch (error) {
+                addResult('error', `❌ Direct API Error: ${error.message}`);
+            }
+        }
+
+        // Test Main Website Script
+        async function testMainWebsite() {
+            addResult('info', '🔄 Test du script principal...');
+            
+            try {
+                if (typeof loadProducts === 'undefined') {
+                    throw new Error('loadProducts function non disponible');
+                }
+                
+                // Test if we have the global products variable
+                if (typeof products !== 'undefined' && products.length > 0) {
+                    addResult('success', `✅ Script Principal: ${products.length} produits déjà chargés`);
+                    addResult('data', JSON.stringify(products, null, 2));
+                } else {
+                    addResult('info', '🔄 Chargement des produits...');
+                    await loadProducts();
+                    
+                    if (typeof products !== 'undefined' && products.length > 0) {
+                        addResult('success', `✅ Script Principal: ${products.length} produits chargés`);
+                        addResult('data', JSON.stringify(products, null, 2));
+                    } else {
+                        addResult('error', '❌ Script Principal: Aucun produit chargé');
+                    }
+                }
+                
+            } catch (error) {
+                addResult('error', `❌ Script Principal Error: ${error.message}`);
+            }
+        }
+
+        // Parse products (test version)
+        function parseProductsFromSheetsTest(values) {
+            const products = [];
+            
+            // Skip header row, start from row 1
+            for (let i = 1; i < values.length; i++) {
+                const row = values[i];
+                if (!row || row.length === 0 || !row[1]) continue;
+                
+                // A: ID, B: Name, C: Price, D: Category, E: Image_URL, F: Description, G: Created
+                const product = {
+                    id: row[0] || i,
+                    name: row[1] || '',
+                    price: row[2] || '',
+                    category: row[3] || 'Général',
+                    image: row[4] || 'https://via.placeholder.com/300x300?text=No+Image',
+                    description: row[5] || 'Description non disponible',
+                    created: row[6] || new Date().toISOString()
+                };
+                
+                if (product.name && product.name.trim() !== '') {
+                    products.push(product);
+                }
+            }
+            
+            return products;
+        }
+
+        // Add result to display
+        function addResult(type, message) {
+            const resultsContainer = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            
+            const colors = {
+                info: 'bg-blue-50 border-blue-200 text-blue-800',
+                success: 'bg-green-50 border-green-200 text-green-800',
+                error: 'bg-red-50 border-red-200 text-red-800',
+                data: 'bg-gray-50 border-gray-200 text-gray-800'
+            };
+            
+            resultDiv.className = `border rounded-lg p-4 ${colors[type]}`;
+            
+            if (type === 'data') {
+                resultDiv.innerHTML = `<pre class="text-xs overflow-auto max-h-64">${message}</pre>`;
+            } else {
+                resultDiv.innerHTML = `<p class="font-mono text-sm">${new Date().toLocaleTimeString()} - ${message}</p>`;
+            }
+            
+            resultsContainer.appendChild(resultDiv);
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Clear results
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            addResult('info', '🗑️ Résultats effacés');
+        }
+    </script>
+</body>
+</html>

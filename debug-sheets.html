@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Debug Google Sheets Data</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">🔍 Debug Google Sheets Data</h1>
+            
+            <!-- Test Buttons -->
+            <div class="mb-6 space-x-4">
+                <button onclick="testGoogleSheetsAPI()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    <i class="fas fa-database mr-2"></i>Test Google Sheets API
+                </button>
+                <button onclick="testWithAPIManager()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    <i class="fas fa-cogs mr-2"></i>Test with API Manager
+                </button>
+                <button onclick="clearResults()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                    <i class="fas fa-eraser mr-2"></i>Clear Results
+                </button>
+            </div>
+
+            <!-- Raw Data Display -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">📊 Raw Google Sheets Data</h3>
+                    <div id="raw-data" class="bg-gray-50 rounded-lg p-4 font-mono text-sm max-h-96 overflow-y-auto">
+                        Click "Test Google Sheets API" to see raw data...
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">🎯 Parsed Products</h3>
+                    <div id="parsed-data" class="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+                        Click "Test with API Manager" to see parsed products...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Display -->
+            <div class="mt-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">🛍️ Products Preview</h3>
+                <div id="products-preview" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Products will be displayed here -->
+                </div>
+            </div>
+
+            <!-- Status Messages -->
+            <div id="status" class="mt-6 p-4 bg-blue-50 rounded-lg">
+                <p class="text-blue-800">Ready to debug your Google Sheets data! 🚀</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include API Manager -->
+    <script src="api-manager.js"></script>
+    
+    <script>
+        // Configuration
+        const CONFIG = {
+            SPREADSHEET_ID: '1LlYjTmwoqZCqkyOuXHpgy5PHKMFAoqcQXBqvt3qyxE8',
+            SHEETS_API_KEY: 'AIzaSyCzJE3U_XZhjVPukHjbVYmikwptj0sqY4k',
+            PRODUCTS_SHEET: 'SHEETS_PRODUCTS'
+        };
+
+        let apiManager;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔍 Debug tool initialized');
+            if (typeof OStoreAPIManager !== 'undefined') {
+                apiManager = new OStoreAPIManager();
+                console.log('✅ API Manager loaded');
+            }
+        });
+
+        // Test direct Google Sheets API
+        async function testGoogleSheetsAPI() {
+            updateStatus('Testing Google Sheets API...', 'info');
+            
+            try {
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${CONFIG.PRODUCTS_SHEET}!A:G?key=${CONFIG.SHEETS_API_KEY}`;
+                console.log('🔗 API URL:', url);
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.values) {
+                    console.log('📊 Raw Google Sheets data:', data.values);
+                    
+                    // Display raw data
+                    document.getElementById('raw-data').innerHTML = `
+                        <div class="text-green-600 font-bold mb-2">✅ Success! Found ${data.values.length} rows</div>
+                        <div class="space-y-2">
+                            ${data.values.map((row, index) => `
+                                <div class="border-b border-gray-200 pb-1">
+                                    <span class="text-blue-600">Row ${index}:</span> ${JSON.stringify(row)}
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    
+                    updateStatus(`✅ Found ${data.values.length} rows in Google Sheets`, 'success');
+                } else {
+                    throw new Error('No data found in response');
+                }
+                
+            } catch (error) {
+                console.error('❌ API test failed:', error);
+                document.getElementById('raw-data').innerHTML = `
+                    <div class="text-red-600">❌ Error: ${error.message}</div>
+                `;
+                updateStatus(`❌ API test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Test with API Manager
+        async function testWithAPIManager() {
+            updateStatus('Testing with API Manager...', 'info');
+            
+            try {
+                if (!apiManager) {
+                    throw new Error('API Manager not initialized');
+                }
+                
+                const result = await apiManager.getProducts();
+                console.log('🎯 API Manager result:', result);
+                
+                if (result.success && result.products) {
+                    // Display parsed data
+                    document.getElementById('parsed-data').innerHTML = `
+                        <div class="text-green-600 font-bold mb-2">✅ Success! Parsed ${result.products.length} products</div>
+                        <div class="space-y-3">
+                            ${result.products.map((product, index) => `
+                                <div class="border border-gray-200 rounded p-2">
+                                    <div class="font-semibold">${index + 1}. ${product.name}</div>
+                                    <div class="text-sm text-gray-600">
+                                        Price: ${product.price}<br>
+                                        Category: ${product.category}<br>
+                                        Description: ${product.description}<br>
+                                        Image: ${product.image ? '✅ Yes' : '❌ No'}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    
+                    // Display products preview
+                    displayProductsPreview(result.products);
+                    
+                    updateStatus(`✅ Successfully parsed ${result.products.length} products`, 'success');
+                } else {
+                    throw new Error(result.error || 'No products found');
+                }
+                
+            } catch (error) {
+                console.error('❌ API Manager test failed:', error);
+                document.getElementById('parsed-data').innerHTML = `
+                    <div class="text-red-600">❌ Error: ${error.message}</div>
+                `;
+                updateStatus(`❌ API Manager test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Display products preview
+        function displayProductsPreview(products) {
+            const container = document.getElementById('products-preview');
+            
+            if (products.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-8 text-gray-500">
+                        <i class="fas fa-box-open text-4xl mb-3"></i>
+                        <p>No products to display</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = products.map(product => `
+                <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                    <img src="${product.image}" alt="${product.name}" class="w-full h-32 object-cover rounded mb-3" onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
+                    <h4 class="font-semibold text-gray-800 mb-1">${product.name}</h4>
+                    <p class="text-sm text-gray-600 mb-2">${product.description}</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-lg font-bold text-green-600">${product.price}</span>
+                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">${product.category}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update status message
+        function updateStatus(message, type = 'info') {
+            const statusElement = document.getElementById('status');
+            const colors = {
+                info: 'bg-blue-50 text-blue-800',
+                success: 'bg-green-50 text-green-800',
+                error: 'bg-red-50 text-red-800',
+                warning: 'bg-yellow-50 text-yellow-800'
+            };
+            
+            statusElement.className = `mt-6 p-4 rounded-lg ${colors[type]}`;
+            statusElement.innerHTML = `<p>${message}</p>`;
+        }
+
+        // Clear results
+        function clearResults() {
+            document.getElementById('raw-data').innerHTML = 'Click "Test Google Sheets API" to see raw data...';
+            document.getElementById('parsed-data').innerHTML = 'Click "Test with API Manager" to see parsed products...';
+            document.getElementById('products-preview').innerHTML = '';
+            updateStatus('Results cleared. Ready for new tests! 🧹', 'info');
+        }
+    </script>
+</body>
+</html>

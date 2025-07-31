@@ -1,0 +1,36 @@
+{
+  "name": "o-store",
+  "version": "1.0.0",
+  "description": "Site web moderne pour produits Oriflame",
+  "main": "index.html",
+  "scripts": {
+    "start": "http-server -p 8080 -o",
+    "dev": "live-server --port=8080",
+    "build": "echo 'No build process needed for static site'",
+    "deploy": "echo 'Deploy to your preferred hosting platform'"
+  },
+  "keywords": [
+    "oriflame",
+    "cosmetics",
+    "ecommerce",
+    "static-site",
+    "tailwindcss",
+    "responsive"
+  ],
+  "author": "O Store",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "live-server": "^1.2.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/o-store.git"
+  },
+  "homepage": "https://ostore.netlify.app",
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}

@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 O Store - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-green-600">🔧 O Store Admin</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="website.html" target="_blank" class="text-blue-600 hover:text-blue-700 transition-colors">
+                        <i class="fas fa-external-link-alt mr-2"></i>Voir le Site Web
+                    </a>
+                    <div class="text-sm text-gray-600">
+                        <i class="fas fa-user mr-1"></i>Admin
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <!-- Dashboard Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-box text-3xl text-blue-500"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-gray-900">Produits</h3>
+                        <p id="products-count" class="text-2xl font-bold text-blue-600">0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-shopping-cart text-3xl text-green-500"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-gray-900">Commandes</h3>
+                        <p id="orders-count" class="text-2xl font-bold text-green-600">0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-clock text-3xl text-yellow-500"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-gray-900">En Attente</h3>
+                        <p id="pending-orders" class="text-2xl font-bold text-yellow-600">0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-database text-3xl text-purple-500"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-gray-900">Base de Données</h3>
+                        <p id="db-status" class="text-sm font-medium text-purple-600">Connexion...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8 px-6">
+                    <button onclick="showTab('products')" class="tab-btn border-b-2 border-green-600 text-green-600 py-4 px-1 text-sm font-medium">
+                        <i class="fas fa-box mr-2"></i>Gestion des Produits
+                    </button>
+                    <button onclick="showTab('orders')" class="tab-btn border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium">
+                        <i class="fas fa-shopping-cart mr-2"></i>Commandes Clients
+                    </button>
+                    <button onclick="showTab('database')" class="tab-btn border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium">
+                        <i class="fas fa-database mr-2"></i>Base de Données
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Products Tab -->
+        <div id="products-tab" class="tab-content active">
+            <!-- Add Product Form -->
+            <div class="bg-white rounded-lg shadow mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        <i class="fas fa-plus-circle mr-2 text-green-600"></i>
+                        Ajouter un Nouveau Produit
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <form id="add-product-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="product-name" class="block text-sm font-medium text-gray-700 mb-2">
+                                Nom du produit *
+                            </label>
+                            <input type="text" id="product-name" required 
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                   placeholder="Ex: Parfum Oriflame Divine">
+                        </div>
+                        
+                        <div>
+                            <label for="product-price" class="block text-sm font-medium text-gray-700 mb-2">
+                                Prix (DA) *
+                            </label>
+                            <input type="number" id="product-price" required 
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                   placeholder="2850">
+                        </div>
+                        
+                        <div>
+                            <label for="product-category" class="block text-sm font-medium text-gray-700 mb-2">
+                                Catégorie *
+                            </label>
+                            <select id="product-category" required 
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                <option value="">Sélectionner une catégorie</option>
+                                <option value="Parfum">🌸 Parfum</option>
+                                <option value="Maquillage">💄 Maquillage</option>
+                                <option value="Soins">🧴 Soins</option>
+                                <option value="Accessoires">👜 Accessoires</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="product-image" class="block text-sm font-medium text-gray-700 mb-2">
+                                URL de l'image *
+                            </label>
+                            <input type="url" id="product-image" required 
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                   placeholder="https://images.unsplash.com/...">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label for="product-description" class="block text-sm font-medium text-gray-700 mb-2">
+                                Description
+                            </label>
+                            <textarea id="product-description" rows="3" 
+                                      class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                      placeholder="Décrivez les caractéristiques du produit..."></textarea>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <button type="submit" 
+                                    class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                                <i class="fas fa-plus mr-2"></i>Ajouter à la Base de Données
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Products List -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <h3 class="text-lg font-medium text-gray-900">Produits dans la Base de Données</h3>
+                    <button onclick="loadProducts()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        <i class="fas fa-sync-alt mr-2"></i>Actualiser
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div id="products-list">
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                            <p>Chargement des produits...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders Tab -->
+        <div id="orders-tab" class="tab-content">
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <h3 class="text-lg font-medium text-gray-900">Commandes Clients</h3>
+                    <button onclick="loadOrders()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        <i class="fas fa-sync-alt mr-2"></i>Actualiser
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div id="orders-list">
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                            <p>Chargement des commandes...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Tab -->
+        <div id="database-tab" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Database Status -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">État de la Base de Données</h3>
+                    </div>
+                    <div class="p-6">
+                        <div id="database-status" class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span>Google Sheets API:</span>
+                                <span id="sheets-api-status" class="text-yellow-600">Test...</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span>Google Apps Script:</span>
+                                <span id="script-status" class="text-yellow-600">Test...</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span>Feuille Produits:</span>
+                                <span id="products-sheet-status" class="text-yellow-600">Test...</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span>Feuille Commandes:</span>
+                                <span id="orders-sheet-status" class="text-yellow-600">Test...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Database Actions -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Actions Base de Données</h3>
+                    </div>
+                    <div class="p-6 space-y-3">
+                        <button onclick="testDatabase()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                            <i class="fas fa-vial mr-2"></i>Tester la Connexion
+                        </button>
+                        <button onclick="viewGoogleSheets()" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
+                            <i class="fas fa-external-link-alt mr-2"></i>Ouvrir Google Sheets
+                        </button>
+                        <button onclick="exportData()" class="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700">
+                            <i class="fas fa-download mr-2"></i>Exporter les Données
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <h3 class="text-xl font-semibold">✏️ Modifier le Produit</h3>
+                    <button onclick="closeEditModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <form id="edit-product-form" class="p-6">
+                    <input type="hidden" id="edit-product-id">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nom du produit</label>
+                            <input type="text" id="edit-product-name" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Prix (DA)</label>
+                            <input type="number" id="edit-product-price" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Catégorie</label>
+                            <select id="edit-product-category" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                <option value="Parfum">🌸 Parfum</option>
+                                <option value="Maquillage">💄 Maquillage</option>
+                                <option value="Soins">🧴 Soins</option>
+                                <option value="Accessoires">👜 Accessoires</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">URL de l'image</label>
+                            <input type="url" id="edit-product-image" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                            <textarea id="edit-product-description" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex space-x-3">
+                        <button type="button" onclick="closeEditModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors">
+                            Annuler
+                        </button>
+                        <button type="submit" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">
+                            <i class="fas fa-save mr-2"></i>Sauvegarder
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include API Manager -->
+    <script src="api-manager.js"></script>
+    
+    <script>
+        // Configuration
+        const CONFIG = {
+            SPREADSHEET_ID: '1LlYjTmwoqZCqkyOuXHpgy5PHKMFAoqcQXBqvt3qyxE8',
+            SHEETS_API_KEY: 'AIzaSyCzJE3U_XZhjVPukHjbVYmikwptj0sqY4k',
+            PRODUCTS_SHEET: 'SHEETS_PRODUCTS',
+            ORDERS_SHEET: 'SHEETS_ORDERS',
+            GOOGLE_APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxeIRYYO00PSS-R1yHv_qNbnZwCTt0SzOvutKRVGQfKlk2VsmAKHR4VYhBdci8k4SXIEA/exec',
+            ADMIN_EMAIL: 'abderrahmanelfajri@gmail.com'
+        };
+
+        // Global variables
+        let products = [];
+        let orders = [];
+        let apiManager;
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 O Store Admin Dashboard Loading...');
+            
+            // Initialize API Manager
+            if (typeof OStoreAPIManager !== 'undefined') {
+                apiManager = new OStoreAPIManager();
+                console.log('✅ API Manager initialized');
+            }
+            
+            setupEventListeners();
+            testDatabase();
+            loadProducts();
+            loadOrders();
+            updateDashboardStats();
+        });
+
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('add-product-form').addEventListener('submit', addProduct);
+            document.getElementById('edit-product-form').addEventListener('submit', updateProduct);
+        }
+
+        // Show tab
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-green-600', 'text-green-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Activate selected tab button
+            event.target.classList.remove('border-transparent', 'text-gray-500');
+            event.target.classList.add('border-green-600', 'text-green-600');
+        }
+
+        // Test database connection
+        async function testDatabase() {
+            console.log('🔍 Testing database connection...');
+            
+            // Update status to testing
+            document.getElementById('db-status').innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Test...';
+            
+            try {
+                // Test Google Sheets API
+                const sheetsResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}?key=${CONFIG.SHEETS_API_KEY}`);
+                if (sheetsResponse.ok) {
+                    document.getElementById('sheets-api-status').innerHTML = '<span class="text-green-600">✅ Connecté</span>';
+                } else {
+                    document.getElementById('sheets-api-status').innerHTML = '<span class="text-red-600">❌ Erreur</span>';
+                }
+                
+                // Test Google Apps Script
+                const scriptResponse = await fetch(CONFIG.GOOGLE_APPS_SCRIPT_URL, { method: 'OPTIONS' });
+                document.getElementById('script-status').innerHTML = '<span class="text-green-600">✅ Actif</span>';
+                
+                // Test products sheet
+                const productsResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${CONFIG.PRODUCTS_SHEET}!A1?key=${CONFIG.SHEETS_API_KEY}`);
+                if (productsResponse.ok) {
+                    document.getElementById('products-sheet-status').innerHTML = '<span class="text-green-600">✅ Accessible</span>';
+                } else {
+                    document.getElementById('products-sheet-status').innerHTML = '<span class="text-red-600">❌ Erreur</span>';
+                }
+                
+                // Test orders sheet
+                const ordersResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${CONFIG.ORDERS_SHEET}!A1?key=${CONFIG.SHEETS_API_KEY}`);
+                if (ordersResponse.ok) {
+                    document.getElementById('orders-sheet-status').innerHTML = '<span class="text-green-600">✅ Accessible</span>';
+                } else {
+                    document.getElementById('orders-sheet-status').innerHTML = '<span class="text-red-600">❌ Erreur</span>';
+                }
+                
+                document.getElementById('db-status').innerHTML = '<span class="text-green-600">✅ Connecté</span>';
+                
+            } catch (error) {
+                console.error('❌ Database test error:', error);
+                document.getElementById('db-status').innerHTML = '<span class="text-red-600">❌ Erreur</span>';
+                document.getElementById('sheets-api-status').innerHTML = '<span class="text-red-600">❌ Erreur</span>';
+                document.getElementById('script-status').innerHTML = '<span class="text-red-600">❌ Erreur</span>';
+                document.getElementById('products-sheet-status').innerHTML = '<span class="text-red-600">❌ Erreur</span>';
+                document.getElementById('orders-sheet-status').innerHTML = '<span class="text-red-600">❌ Erreur</span>';
+            }
+        }
+
+        // Load products from database
+        async function loadProducts() {
+            try {
+                console.log('🔄 Loading products from database...');
+                
+                if (apiManager) {
+                    const result = await apiManager.getProducts();
+                    
+                    if (result.success && result.products) {
+                        products = result.products;
+                        displayProducts(products);
+                        updateDashboardStats();
+                        console.log(`✅ Loaded ${products.length} products`);
+                        return;
+                    }
+                }
+                
+                // Fallback: direct API call
+                await loadProductsDirectly();
+                
+            } catch (error) {
+                console.error('❌ Error loading products:', error);
+                document.getElementById('products-list').innerHTML = `
+                    <div class="text-center py-8 text-red-500">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-3"></i>
+                        <p>Erreur lors du chargement des produits</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Load products directly
+        async function loadProductsDirectly() {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${CONFIG.PRODUCTS_SHEET}!A:G?key=${CONFIG.SHEETS_API_KEY}`;
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.values && data.values.length > 1) {
+                products = parseProducts(data.values);
+                displayProducts(products);
+                updateDashboardStats();
+                console.log(`✅ Loaded ${products.length} products directly`);
+            } else {
+                products = [];
+                displayProducts([]);
+            }
+        }
+
+        // Parse products from sheets data
+        function parseProducts(values) {
+            const products = [];
+            
+            for (let i = 1; i < values.length; i++) {
+                const row = values[i];
+                if (!row || row.length === 0 || !row[1]) continue;
+                
+                const product = {
+                    id: row[0] || i,
+                    name: row[1] || '',
+                    price: row[2] || '',
+                    category: row[3] || '',
+                    image: row[4] || '',
+                    description: row[5] || '',
+                    created: row[6] || ''
+                };
+                
+                if (product.name && product.name.trim() !== '') {
+                    products.push(product);
+                }
+            }
+            
+            return products;
+        }
+
+        // Display products
+        function displayProducts(productsToShow) {
+            const container = document.getElementById('products-list');
+            
+            if (productsToShow.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-box-open text-4xl mb-3"></i>
+                        <p>Aucun produit dans la base de données</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    ${productsToShow.map(product => `
+                        <div class="border rounded-lg p-4 hover:shadow-lg transition-shadow">
+                            <img src="${product.image}" alt="${product.name}" class="w-full h-32 object-cover rounded mb-3"
+                                 onerror="this.src='https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=300'">
+                            <h4 class="font-semibold text-lg mb-2">${product.name}</h4>
+                            <p class="text-green-600 font-bold mb-2">${product.price}</p>
+                            <p class="text-sm text-gray-600 mb-2">${product.category}</p>
+                            <p class="text-xs text-gray-500 mb-3">${product.description || 'Aucune description'}</p>
+                            <div class="flex space-x-2">
+                                <button onclick="editProduct('${product.id}')" class="flex-1 bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                                    <i class="fas fa-edit mr-1"></i>Modifier
+                                </button>
+                                <button onclick="deleteProduct('${product.id}')" class="flex-1 bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">
+                                    <i class="fas fa-trash mr-1"></i>Supprimer
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Add product
+        async function addProduct(e) {
+            e.preventDefault();
+            
+            try {
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Ajout...';
+                submitBtn.disabled = true;
+                
+                const productData = {
+                    action: 'addProduct',
+                    product: {
+                        id: Date.now(),
+                        name: document.getElementById('product-name').value.trim(),
+                        price: document.getElementById('product-price').value + ' DA',
+                        category: document.getElementById('product-category').value,
+                        image: document.getElementById('product-image').value.trim(),
+                        description: document.getElementById('product-description').value.trim(),
+                        created: new Date().toISOString()
+                    },
+                    timestamp: new Date().toISOString()
+                };
+                
+                const response = await fetch(CONFIG.GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(productData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erreur de connexion au serveur');
+                }
+                
+                const result = await response.json();
+                console.log('✅ Product added:', result);
+                
+                // Reset form
+                e.target.reset();
+                
+                // Reload products
+                await loadProducts();
+                
+                showNotification('✅ Produit ajouté avec succès!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error adding product:', error);
+                showNotification(`❌ Erreur: ${error.message}`, 'error');
+            } finally {
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                submitBtn.innerHTML = '<i class="fas fa-plus mr-2"></i>Ajouter à la Base de Données';
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Edit product
+        function editProduct(productId) {
+            const product = products.find(p => p.id == productId);
+            if (!product) return;
+            
+            // Populate edit form
+            document.getElementById('edit-product-id').value = product.id;
+            document.getElementById('edit-product-name').value = product.name;
+            document.getElementById('edit-product-price').value = product.price.replace(/[^\d]/g, '');
+            document.getElementById('edit-product-category').value = product.category;
+            document.getElementById('edit-product-image').value = product.image;
+            document.getElementById('edit-product-description').value = product.description;
+            
+            // Show modal
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        // Close edit modal
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        // Update product
+        async function updateProduct(e) {
+            e.preventDefault();
+            
+            try {
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Mise à jour...';
+                submitBtn.disabled = true;
+                
+                const productData = {
+                    action: 'updateProduct',
+                    product: {
+                        id: document.getElementById('edit-product-id').value,
+                        name: document.getElementById('edit-product-name').value.trim(),
+                        price: document.getElementById('edit-product-price').value + ' DA',
+                        category: document.getElementById('edit-product-category').value,
+                        image: document.getElementById('edit-product-image').value.trim(),
+                        description: document.getElementById('edit-product-description').value.trim(),
+                        updated: new Date().toISOString()
+                    },
+                    timestamp: new Date().toISOString()
+                };
+                
+                const response = await fetch(CONFIG.GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(productData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erreur de connexion au serveur');
+                }
+                
+                const result = await response.json();
+                console.log('✅ Product updated:', result);
+                
+                // Close modal and reload products
+                closeEditModal();
+                await loadProducts();
+                
+                showNotification('✅ Produit modifié avec succès!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error updating product:', error);
+                showNotification(`❌ Erreur: ${error.message}`, 'error');
+            } finally {
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Sauvegarder';
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Delete product
+        async function deleteProduct(productId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) return;
+            
+            try {
+                const productData = {
+                    action: 'deleteProduct',
+                    productId: productId,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const response = await fetch(CONFIG.GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(productData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erreur de connexion au serveur');
+                }
+                
+                const result = await response.json();
+                console.log('✅ Product deleted:', result);
+                
+                // Reload products
+                await loadProducts();
+                
+                showNotification('✅ Produit supprimé avec succès!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error deleting product:', error);
+                showNotification(`❌ Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        // Load orders
+        async function loadOrders() {
+            try {
+                console.log('🔄 Loading orders from database...');
+                
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${CONFIG.ORDERS_SHEET}!A:H?key=${CONFIG.SHEETS_API_KEY}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.values && data.values.length > 1) {
+                    orders = parseOrders(data.values);
+                    displayOrders(orders);
+                    updateDashboardStats();
+                    console.log(`✅ Loaded ${orders.length} orders`);
+                } else {
+                    orders = [];
+                    displayOrders([]);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error loading orders:', error);
+                document.getElementById('orders-list').innerHTML = `
+                    <div class="text-center py-8 text-red-500">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-3"></i>
+                        <p>Erreur lors du chargement des commandes</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Parse orders from sheets data
+        function parseOrders(values) {
+            const orders = [];
+            
+            for (let i = 1; i < values.length; i++) {
+                const row = values[i];
+                if (!row || row.length === 0) continue;
+                
+                const order = {
+                    id: row[0] || i,
+                    customerName: row[1] || '',
+                    customerPhone: row[2] || '',
+                    customerEmail: row[3] || '',
+                    customerAddress: row[4] || '',
+                    products: row[5] || '',
+                    total: row[6] || '',
+                    status: row[7] || 'Nouveau',
+                    date: row[8] || ''
+                };
+                
+                if (order.customerName && order.customerName.trim() !== '') {
+                    orders.push(order);
+                }
+            }
+            
+            return orders.reverse(); // Most recent first
+        }
+
+        // Display orders
+        function displayOrders(ordersToShow) {
+            const container = document.getElementById('orders-list');
+            
+            if (ordersToShow.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-shopping-cart text-4xl mb-3"></i>
+                        <p>Aucune commande reçue</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = `
+                <div class="space-y-4">
+                    ${ordersToShow.map(order => `
+                        <div class="border rounded-lg p-4 ${order.status === 'Nouveau' ? 'border-green-300 bg-green-50' : 'border-gray-200'}">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-semibold text-lg">${order.customerName}</h4>
+                                    <p class="text-sm text-gray-600">Commande #${order.id}</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xl font-bold text-green-600">${order.total}</span>
+                                    <div class="mt-1">
+                                        <span class="px-2 py-1 rounded-full text-xs font-semibold ${order.status === 'Nouveau' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                                            ${order.status}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <p><strong>📞 Téléphone:</strong> ${order.customerPhone}</p>
+                                    <p><strong>📧 Email:</strong> ${order.customerEmail || 'Non fourni'}</p>
+                                </div>
+                                <div>
+                                    <p><strong>📍 Adresse:</strong> ${order.customerAddress}</p>
+                                    <p><strong>📅 Date:</strong> ${order.date}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3 pt-3 border-t border-gray-200">
+                                <p class="text-sm"><strong>🛒 Produits:</strong> ${order.products}</p>
+                            </div>
+                            
+                            <div class="mt-3 flex space-x-2">
+                                <button onclick="updateOrderStatus('${order.id}', 'Traité')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                                    Marquer comme Traité
+                                </button>
+                                <button onclick="updateOrderStatus('${order.id}', 'Livré')" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
+                                    Marquer comme Livré
+                                </button>
+                                <a href="tel:${order.customerPhone}" class="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700">
+                                    <i class="fas fa-phone mr-1"></i>Appeler
+                                </a>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Update order status
+        async function updateOrderStatus(orderId, newStatus) {
+            try {
+                const orderData = {
+                    action: 'updateOrderStatus',
+                    orderId: orderId,
+                    status: newStatus,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const response = await fetch(CONFIG.GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erreur de connexion au serveur');
+                }
+                
+                const result = await response.json();
+                console.log('✅ Order status updated:', result);
+                
+                // Reload orders
+                await loadOrders();
+                
+                showNotification(`✅ Statut mis à jour: ${newStatus}`, 'success');
+                
+            } catch (error) {
+                console.error('❌ Error updating order status:', error);
+                showNotification(`❌ Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        // Update dashboard stats
+        function updateDashboardStats() {
+            document.getElementById('products-count').textContent = products.length;
+            document.getElementById('orders-count').textContent = orders.length;
+            
+            const pendingOrders = orders.filter(order => order.status === 'Nouveau' || order.status === 'Traité').length;
+            document.getElementById('pending-orders').textContent = pendingOrders;
+        }
+
+        // View Google Sheets
+        function viewGoogleSheets() {
+            window.open(`https://docs.google.com/spreadsheets/d/${CONFIG.SPREADSHEET_ID}/edit`, '_blank');
+        }
+
+        // Export data
+        function exportData() {
+            const data = {
+                products: products,
+                orders: orders,
+                exportDate: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ostore-export-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showNotification('✅ Données exportées avec succès!', 'success');
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            const colors = {
+                success: 'bg-green-600',
+                error: 'bg-red-600',
+                info: 'bg-blue-600',
+                warning: 'bg-yellow-600'
+            };
+            
+            const notification = document.createElement('div');
+            notification.className = `notification fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-sm`;
+            notification.innerHTML = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        console.log('✅ O Store Admin Dashboard Ready!');
+    </script>
+</body>
+</html>

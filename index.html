@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O Store - Produits Oriflame de Qualité</title>
+    <meta name="description" content="Découvrez notre collection exclusive de produits Oriflame - parfums, maquillage et soins de beauté de qualité premium.">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- API Scripts - Comprehensive API management -->
+    <script src="api-manager.js"></script>
+    <script src="api-local.js"></script>
+    <script src="sheets-api.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'GA_MEASUREMENT_ID'); // Replace with your actual GA4 Measurement ID
+    </script>
+</head>
+<body class="font-poppins">
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full bg-white shadow-lg z-50 transition-all duration-300" id="navbar">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex-shrink-0">
+                    <a href="#accueil" class="text-2xl font-bold text-green-600">O Store</a>
+                </div>
+                
+                <!-- Desktop Menu -->
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#accueil" class="nav-link text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">Accueil</a>
+                        <a href="#produits" class="nav-link text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">Produits</a>
+                        <a href="order.html" class="text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md text-sm font-medium transition-colors">Commander</a>
+                        <a href="#contact" class="nav-link text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">Contact</a>
+                    </div>
+                </div>
+                
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button id="mobile-menu-btn" class="text-gray-700 hover:text-green-600 focus:outline-none">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
+                <a href="#accueil" class="nav-link block text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-base font-medium">Accueil</a>
+                <a href="#produits" class="nav-link block text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-base font-medium">Produits</a>
+                <a href="order.html" class="block text-white bg-green-600 hover:bg-green-700 px-3 py-2 rounded-md text-base font-medium">Commander</a>
+                <a href="#contact" class="nav-link block text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-base font-medium">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section - Accueil -->
+    <section id="accueil" class="pt-16 bg-gradient-to-br from-green-50 to-white min-h-screen flex items-center">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div class="text-center lg:text-left">
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-800 mb-6">
+                        Découvrez la 
+                        <span class="text-green-600">Beauté Naturelle</span>
+                    </h1>
+                    <p class="text-lg sm:text-xl text-gray-600 mb-8 leading-relaxed">
+                        Explorez notre collection exclusive de produits Oriflame. Des parfums envoûtants aux soins de beauté premium, découvrez la qualité suédoise qui révèle votre éclat naturel.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                        <a href="#produits" class="bg-green-600 text-white px-8 py-4 rounded-full font-semibold hover:bg-green-700 transition-colors shadow-lg">
+                            Voir les Produits
+                        </a>
+                        <a href="#contact" class="border-2 border-green-600 text-green-600 px-8 py-4 rounded-full font-semibold hover:bg-green-600 hover:text-white transition-colors">
+                            Nous Contacter
+                        </a>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="relative z-10">
+                        <img src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+                             alt="Produits de beauté Oriflame" 
+                             class="rounded-2xl shadow-2xl w-full">
+                    </div>
+                    <div class="absolute top-4 right-4 w-32 h-32 bg-green-200 rounded-full opacity-60 animate-pulse"></div>
+                    <div class="absolute bottom-4 left-4 w-24 h-24 bg-green-300 rounded-full opacity-40 animate-pulse delay-1000"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Section -->
+    <section id="produits" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">Nos Produits</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Découvrez notre gamme complète de produits Oriflame, soigneusement sélectionnés pour votre beauté et bien-être.
+                </p>
+            </div>
+            
+            <!-- Category Filter -->
+            <div class="flex flex-wrap justify-center gap-4 mb-12" id="category-filters">
+                <button class="filter-btn active bg-green-600 text-white px-6 py-3 rounded-full font-medium transition-colors" data-category="all">
+                    Tous les Produits
+                </button>
+                <button class="filter-btn bg-gray-200 text-gray-700 hover:bg-gray-300 px-6 py-3 rounded-full font-medium transition-colors" data-category="Parfum">
+                    Parfums
+                </button>
+                <button class="filter-btn bg-gray-200 text-gray-700 hover:bg-gray-300 px-6 py-3 rounded-full font-medium transition-colors" data-category="Maquillage">
+                    Maquillage
+                </button>
+                <button class="filter-btn bg-gray-200 text-gray-700 hover:bg-gray-300 px-6 py-3 rounded-full font-medium transition-colors" data-category="Soin">
+                    Soins
+                </button>
+            </div>
+            
+            <!-- Loading State -->
+            <div id="products-loading" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+                <p class="mt-4 text-gray-600">Chargement des produits...</p>
+            </div>
+            
+            <!-- Products Grid -->
+            <div id="products-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 hidden">
+                <!-- Products will be dynamically loaded here -->
+            </div>
+            
+            <!-- No products message -->
+            <div id="no-products" class="text-center py-12 hidden">
+                <i class="fas fa-search text-6xl text-gray-300 mb-4"></i>
+                <h3 class="text-xl font-semibold text-gray-600 mb-2">Aucun produit trouvé</h3>
+                <p class="text-gray-500">Essayez de sélectionner une autre catégorie.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-20 bg-green-600 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold mb-4">Contactez-nous</h2>
+                <p class="text-xl text-green-100">
+                    Nous sommes là pour vous aider et répondre à vos questions.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <!-- WhatsApp -->
+                <div class="bg-white bg-opacity-10 rounded-2xl p-8 hover:bg-opacity-20 transition-colors">
+                    <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fab fa-whatsapp text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">WhatsApp</h3>
+                    <p class="text-green-100 mb-4">Discutez avec nous instantanément</p>
+                    <a href="https://wa.me/1234567890" target="_blank" 
+                       class="inline-flex items-center bg-white text-green-600 px-6 py-3 rounded-full font-semibold hover:bg-green-50 transition-colors">
+                        <i class="fab fa-whatsapp mr-2"></i>
+                        Ouvrir WhatsApp
+                    </a>
+                </div>
+                
+                <!-- Phone -->
+                <div class="bg-white bg-opacity-10 rounded-2xl p-8 hover:bg-opacity-20 transition-colors">
+                    <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-phone text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Téléphone</h3>
+                    <p class="text-green-100 mb-4">Appelez-nous directement</p>
+                    <a href="tel:+1234567890" 
+                       class="inline-flex items-center bg-white text-green-600 px-6 py-3 rounded-full font-semibold hover:bg-green-50 transition-colors">
+                        <i class="fas fa-phone mr-2"></i>
+                        +1 (234) 567-890
+                    </a>
+                </div>
+                
+                <!-- Email -->
+                <div class="bg-white bg-opacity-10 rounded-2xl p-8 hover:bg-opacity-20 transition-colors">
+                    <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-envelope text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Email</h3>
+                    <p class="text-green-100 mb-4">Envoyez-nous un message</p>
+                    <a href="mailto:contact@ostore.com" 
+                       class="inline-flex items-center bg-white text-green-600 px-6 py-3 rounded-full font-semibold hover:bg-green-50 transition-colors">
+                        <i class="fas fa-envelope mr-2"></i>
+                        contact@ostore.com
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Social Media -->
+            <div class="text-center mt-16">
+                <h3 class="text-2xl font-semibold mb-6">Suivez-nous</h3>
+                <div class="flex justify-center space-x-6">
+                    <a href="#" class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors">
+                        <i class="fab fa-facebook-f text-xl"></i>
+                    </a>
+                    <a href="#" class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors">
+                        <i class="fab fa-instagram text-xl"></i>
+                    </a>
+                    <a href="#" class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors">
+                        <i class="fab fa-youtube text-xl"></i>
+                    </a>
+                    <a href="#" class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors">
+                        <i class="fab fa-tiktok text-xl"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-400 mb-4">O Store</div>
+                <p class="text-gray-400 mb-4">
+                    Votre destination pour les produits Oriflame de qualité premium.
+                </p>
+                <p class="text-sm text-gray-500">
+                    © 2025 O Store. Tous droits réservés.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to Top Button -->
+    <button id="back-to-top" class="fixed bottom-8 right-8 bg-green-600 text-white p-3 rounded-full shadow-lg hover:bg-green-700 transition-all duration-300 opacity-0 pointer-events-none">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <!-- JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>

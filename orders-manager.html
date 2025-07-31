@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📋 Orders Manager - Backup Tool (Optional)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">📋 Orders Manager - Backup Tool</h1>
+            <p class="text-gray-600 mb-6">
+                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                <strong>Note:</strong> This tool is now optional! Your orders go directly to Google Sheets automatically. 
+                Use this only as a backup or to manually transfer old orders.
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+                    <h3 class="font-semibold text-blue-800">📊 Your Google Spreadsheet</h3>
+                    <p class="text-blue-700 text-sm mt-2">ID: 1LlYjTmwoqZCqkyOuXHpgy5PHKMFAoqcQXBqvt3qyxE8</p>
+                    <a href="https://docs.google.com/spreadsheets/d/1LlYjTmwoqZCqkyOuXHpgy5PHKMFAoqcQXBqvt3qyxE8/edit" 
+                       target="_blank" 
+                       rel="noopener noreferrer" 
+                       class="inline-block mt-2 bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                        🔗 Open Spreadsheet
+                    </a>
+                </div>
+                <div class="bg-green-50 border-l-4 border-green-400 p-4">
+                    <h3 class="font-semibold text-green-800">✅ Orders Found</h3>
+                    <p id="orders-count" class="text-green-700 text-sm mt-2">Loading...</p>
+                </div>
+            </div>
+            
+            <div class="space-y-4 mb-6">
+                <button onclick="loadOrders()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    🔄 Refresh Orders
+                </button>
+                <button onclick="copyOrdersHeaders()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                    📋 Copy Headers for Google Sheets
+                </button>
+                <button onclick="copyAllOrders()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+                    📋 Copy All Orders Data
+                </button>
+                <button onclick="clearOrders()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+                    🗑️ Clear All Orders
+                </button>
+            </div>
+            
+            <!-- Instructions -->
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                <h3 class="font-semibold text-yellow-800">📝 How to Add Orders to Google Sheets</h3>
+                <ol class="list-decimal list-inside text-yellow-700 text-sm mt-2 space-y-1">
+                    <li>Click "Copy Headers for Google Sheets" and paste into row 1 of SHEETS_ORDERS tab</li>
+                    <li>Click "Copy All Orders Data" and paste starting from row 2</li>
+                    <li>Your orders will now be visible in Google Sheets!</li>
+                </ol>
+            </div>
+            
+            <!-- Orders Display -->
+            <div id="orders-section" class="mb-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">📦 Stored Orders</h3>
+                <div id="orders-grid" class="space-y-4">
+                    <!-- Orders will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Copy Area -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">📋 Copy Results</h3>
+                <div id="copy-results" class="text-sm text-gray-700">
+                    Click the copy buttons above to copy data to your clipboard.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let orders = [];
+        
+        function log(message) {
+            document.getElementById('copy-results').innerHTML = message;
+            console.log(message);
+        }
+        
+        function loadOrders() {
+            try {
+                orders = JSON.parse(localStorage.getItem('ostore-orders') || '[]');
+                document.getElementById('orders-count').textContent = `${orders.length} commandes trouvées`;
+                displayOrders();
+                log(`✅ Loaded ${orders.length} orders from storage`);
+            } catch (error) {
+                log('❌ Error loading orders: ' + error.message);
+                orders = [];
+            }
+        }
+        
+        function displayOrders() {
+            const grid = document.getElementById('orders-grid');
+            
+            if (orders.length === 0) {
+                grid.innerHTML = `
+                    <div class="bg-gray-100 rounded-lg p-6 text-center">
+                        <i class="fas fa-inbox text-4xl text-gray-400 mb-3"></i>
+                        <p class="text-gray-600">Aucune commande trouvée</p>
+                        <p class="text-sm text-gray-500 mt-1">Les commandes apparaîtront ici après soumission</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = orders.map((order, index) => `
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-3">
+                        <h4 class="font-semibold text-gray-800">Commande #${order.id || index + 1}</h4>
+                        <span class="text-sm text-gray-500">${new Date(order.date || order.timestamp).toLocaleString('fr-FR')}</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-600"><strong>Client:</strong> ${order.customerName}</p>
+                            <p class="text-sm text-gray-600"><strong>Téléphone:</strong> ${order.customerPhone}</p>
+                            <p class="text-sm text-gray-600"><strong>Adresse:</strong> ${order.customerAddress}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600"><strong>Total:</strong> ${order.orderTotal} DA</p>
+                            <p class="text-sm text-gray-600"><strong>Produits:</strong></p>
+                            <ul class="text-xs text-gray-500 mt-1">
+                                ${order.products ? order.products.map(p => `<li>• ${p.name} x${p.quantity}</li>`).join('') : '<li>Détails non disponibles</li>'}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    ${order.notes ? `<p class="text-sm text-gray-600 mt-2"><strong>Notes:</strong> ${order.notes}</p>` : ''}
+                </div>
+            `).join('');
+        }
+        
+        function copyOrdersHeaders() {
+            const headers = "Date\tHeure\tClient\tTéléphone\tAdresse\tProduits\tTotal\tNotes\tStatut";
+            
+            navigator.clipboard.writeText(headers).then(() => {
+                log('✅ En-têtes copiés! Collez dans la première ligne de votre feuille SHEETS_ORDERS');
+            }).catch(() => {
+                log('❌ Échec de la copie. Copiez manuellement: ' + headers);
+            });
+        }
+        
+        function copyAllOrders() {
+            if (orders.length === 0) {
+                log('⚠️ Aucune commande à copier');
+                return;
+            }
+            
+            const ordersData = orders.map(order => {
+                const date = new Date(order.date || order.timestamp);
+                const products = order.products ? 
+                    order.products.map(p => `${p.name} x${p.quantity}`).join(', ') : 
+                    'Détails non disponibles';
+                
+                return [
+                    date.toLocaleDateString('fr-FR'),
+                    date.toLocaleTimeString('fr-FR'),
+                    order.customerName || '',
+                    order.customerPhone || '',
+                    order.customerAddress || '',
+                    products,
+                    (order.orderTotal || '0') + ' DA',
+                    order.notes || '',
+                    'Nouvelle commande'
+                ].join('\t');
+            }).join('\n');
+            
+            navigator.clipboard.writeText(ordersData).then(() => {
+                log(`✅ ${orders.length} commandes copiées! Collez dans votre feuille SHEETS_ORDERS à partir de la ligne 2`);
+            }).catch(() => {
+                log('❌ Échec de la copie. Vérifiez la console pour les données.');
+                console.log('Données des commandes:', ordersData);
+            });
+        }
+        
+        function clearOrders() {
+            if (confirm('Êtes-vous sûr de vouloir supprimer toutes les commandes stockées?')) {
+                localStorage.removeItem('ostore-orders');
+                orders = [];
+                loadOrders();
+                log('✅ Toutes les commandes ont été supprimées');
+            }
+        }
+        
+        // Auto-load on page load
+        window.addEventListener('load', () => {
+            loadOrders();
+            log('🚀 Orders Manager chargé - Prêt à transférer vos commandes!');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 O Store - Full System Diagnostic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold text-red-600 mb-6">🔍 O Store - Full System Diagnostic</h1>
+        
+        <!-- Add Product Test -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">1. 🧪 Test Adding Product</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <input type="text" id="test-name" placeholder="Product Name" class="border rounded p-2" value="Test Product">
+                <input type="text" id="test-price" placeholder="Price" class="border rounded p-2" value="1000">
+                <select id="test-category" class="border rounded p-2">
+                    <option value="Parfum">Parfum</option>
+                    <option value="Maquillage">Maquillage</option>
+                    <option value="Soins">Soins</option>
+                </select>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <input type="url" id="test-image" placeholder="Image URL" class="border rounded p-2" value="https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=300">
+                <input type="text" id="test-description" placeholder="Description" class="border rounded p-2" value="Test product description">
+            </div>
+            <div class="space-x-2">
+                <button onclick="testAddProduct()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    <i class="fas fa-plus mr-2"></i>Add to localStorage
+                </button>
+                <button onclick="testSyncToSheets()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    <i class="fas fa-cloud-upload mr-2"></i>Sync to Google Sheets
+                </button>
+                <button onclick="clearLocalProducts()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                    <i class="fas fa-trash mr-2"></i>Clear localStorage
+                </button>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow p-4">
+                <h3 class="font-semibold text-blue-600">📱 localStorage</h3>
+                <p id="localStorage-count" class="text-2xl font-bold">-</p>
+                <p class="text-sm text-gray-600">products stored</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <h3 class="font-semibold text-green-600">☁️ Google Sheets</h3>
+                <p id="sheets-count" class="text-2xl font-bold">-</p>
+                <p class="text-sm text-gray-600">products synced</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <h3 class="font-semibold text-purple-600">🔧 API Manager</h3>
+                <p id="api-status" class="text-2xl font-bold">-</p>
+                <p class="text-sm text-gray-600">status</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <h3 class="font-semibold text-orange-600">🌐 Website</h3>
+                <p id="website-count" class="text-2xl font-bold">-</p>
+                <p class="text-sm text-gray-600">products displayed</p>
+            </div>
+        </div>
+
+        <!-- Test Buttons -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">2. 🔍 Diagnostic Tests</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <button onclick="testLocalStorage()" class="bg-blue-600 text-white p-3 rounded hover:bg-blue-700 text-sm">
+                    <i class="fas fa-database mr-1"></i>localStorage
+                </button>
+                <button onclick="testGoogleSheets()" class="bg-green-600 text-white p-3 rounded hover:bg-green-700 text-sm">
+                    <i class="fas fa-cloud mr-1"></i>Google Sheets
+                </button>
+                <button onclick="testAPIManager()" class="bg-purple-600 text-white p-3 rounded hover:bg-purple-700 text-sm">
+                    <i class="fas fa-cogs mr-1"></i>API Manager
+                </button>
+                <button onclick="testWebsiteScript()" class="bg-orange-600 text-white p-3 rounded hover:bg-orange-700 text-sm">
+                    <i class="fas fa-globe mr-1"></i>Website Script
+                </button>
+                <button onclick="testCompleteFlow()" class="bg-red-600 text-white p-3 rounded hover:bg-red-700 text-sm">
+                    <i class="fas fa-play mr-1"></i>Complete Flow
+                </button>
+                <button onclick="refreshStatus()" class="bg-gray-600 text-white p-3 rounded hover:bg-gray-700 text-sm">
+                    <i class="fas fa-sync mr-1"></i>Refresh All
+                </button>
+                <button onclick="viewGoogleSheets()" class="bg-indigo-600 text-white p-3 rounded hover:bg-indigo-700 text-sm">
+                    <i class="fas fa-external-link mr-1"></i>Open Sheets
+                </button>
+                <button onclick="clearAllResults()" class="bg-black text-white p-3 rounded hover:bg-gray-800 text-sm">
+                    <i class="fas fa-eraser mr-1"></i>Clear Results
+                </button>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results" class="space-y-4">
+            <!-- Results will appear here -->
+        </div>
+    </div>
+
+    <!-- Include all scripts -->
+    <script src="api-manager.js"></script>
+    <script src="script.js"></script>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            SPREADSHEET_ID: '1LlYjTmwoqZCqkyOuXHpgy5PHKMFAoqcQXBqvt3qyxE8',
+            SHEETS_API_KEY: 'AIzaSyCzJE3U_XZhjVPukHjbVYmikwptj0sqY4k',
+            PRODUCTS_SHEET: 'SHEETS_PRODUCTS',
+            GOOGLE_APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxeIRYYO00PSS-R1yHv_qNbnZwCTt0SzOvutKRVGQfKlk2VsmAKHR4VYhBdci8k4SXIEA/exec'
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔍 Full System Diagnostic loaded');
+            addResult('info', '✅ Diagnostic page loaded');
+            refreshStatus();
+        });
+
+        // Test adding product to localStorage
+        function testAddProduct() {
+            try {
+                const product = {
+                    id: Date.now(),
+                    name: document.getElementById('test-name').value.trim(),
+                    price: document.getElementById('test-price').value + ' DA',
+                    category: document.getElementById('test-category').value,
+                    image: document.getElementById('test-image').value.trim(),
+                    description: document.getElementById('test-description').value.trim(),
+                    synced: false,
+                    created: new Date().toISOString()
+                };
+
+                const products = JSON.parse(localStorage.getItem('ostore-products') || '[]');
+                products.push(product);
+                localStorage.setItem('ostore-products', JSON.stringify(products));
+
+                addResult('success', `✅ Added product "${product.name}" to localStorage`);
+                addResult('data', JSON.stringify(product, null, 2));
+                refreshStatus();
+            } catch (error) {
+                addResult('error', `❌ Error adding product: ${error.message}`);
+            }
+        }
+
+        // Test syncing to Google Sheets
+        async function testSyncToSheets() {
+            try {
+                const products = JSON.parse(localStorage.getItem('ostore-products') || '[]');
+                const lastProduct = products[products.length - 1];
+                
+                if (!lastProduct) {
+                    throw new Error('No products in localStorage to sync');
+                }
+
+                addResult('info', '🔄 Syncing to Google Sheets...');
+
+                const productData = {
+                    action: 'addProduct',
+                    product: lastProduct,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const response = await fetch(CONFIG.GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(productData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                addResult('success', `✅ Synced to Google Sheets: ${JSON.stringify(result)}`);
+                
+                // Mark as synced
+                lastProduct.synced = true;
+                localStorage.setItem('ostore-products', JSON.stringify(products));
+                
+                refreshStatus();
+            } catch (error) {
+                addResult('error', `❌ Sync error: ${error.message}`);
+            }
+        }
+
+        // Test localStorage
+        function testLocalStorage() {
+            try {
+                const products = JSON.parse(localStorage.getItem('ostore-products') || '[]');
+                addResult('info', `📱 localStorage contains ${products.length} products`);
+                if (products.length > 0) {
+                    addResult('data', JSON.stringify(products, null, 2));
+                } else {
+                    addResult('warning', '⚠️ No products in localStorage');
+                }
+            } catch (error) {
+                addResult('error', `❌ localStorage error: ${error.message}`);
+            }
+        }
+
+        // Test Google Sheets API
+        async function testGoogleSheets() {
+            try {
+                addResult('info', '🔄 Testing Google Sheets API...');
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${CONFIG.PRODUCTS_SHEET}!A:G?key=${CONFIG.SHEETS_API_KEY}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.values && data.values.length > 1) {
+                    const products = parseProductsFromSheetsTest(data.values);
+                    addResult('success', `✅ Google Sheets: ${products.length} products found`);
+                    addResult('data', JSON.stringify(products, null, 2));
+                } else {
+                    addResult('warning', '⚠️ No products found in Google Sheets');
+                    addResult('data', JSON.stringify(data, null, 2));
+                }
+            } catch (error) {
+                addResult('error', `❌ Google Sheets error: ${error.message}`);
+            }
+        }
+
+        // Test API Manager
+        async function testAPIManager() {
+            try {
+                addResult('info', '🔄 Testing API Manager...');
+                
+                if (typeof OStoreAPIManager === 'undefined') {
+                    throw new Error('API Manager not available');
+                }
+                
+                const apiManager = new OStoreAPIManager();
+                const result = await apiManager.getProducts();
+                
+                if (result.success && result.products) {
+                    addResult('success', `✅ API Manager: ${result.products.length} products`);
+                    addResult('data', JSON.stringify(result.products, null, 2));
+                } else {
+                    addResult('error', `❌ API Manager: ${result.error || 'No products'}`);
+                    addResult('data', JSON.stringify(result, null, 2));
+                }
+            } catch (error) {
+                addResult('error', `❌ API Manager error: ${error.message}`);
+            }
+        }
+
+        // Test website script
+        async function testWebsiteScript() {
+            try {
+                addResult('info', '🔄 Testing website script...');
+                
+                // Check if script.js functions are available
+                if (typeof loadProducts === 'undefined') {
+                    throw new Error('loadProducts function not available');
+                }
+
+                // Try to load products using main script
+                if (typeof products !== 'undefined' && products.length > 0) {
+                    addResult('success', `✅ Website script: ${products.length} products loaded`);
+                    addResult('data', JSON.stringify(products, null, 2));
+                } else {
+                    addResult('info', '🔄 Loading products with website script...');
+                    await loadProducts();
+                    
+                    if (typeof products !== 'undefined' && products.length > 0) {
+                        addResult('success', `✅ Website script loaded: ${products.length} products`);
+                        addResult('data', JSON.stringify(products, null, 2));
+                    } else {
+                        addResult('error', '❌ Website script: No products loaded');
+                    }
+                }
+            } catch (error) {
+                addResult('error', `❌ Website script error: ${error.message}`);
+            }
+        }
+
+        // Test complete flow
+        async function testCompleteFlow() {
+            addResult('info', '🔄 Starting complete flow test...');
+            
+            // Step 1: Add test product
+            addResult('info', 'Step 1: Adding test product...');
+            testAddProduct();
+            await new Promise(r => setTimeout(r, 1000));
+            
+            // Step 2: Sync to Google Sheets
+            addResult('info', 'Step 2: Syncing to Google Sheets...');
+            await testSyncToSheets();
+            await new Promise(r => setTimeout(r, 2000));
+            
+            // Step 3: Test Google Sheets read
+            addResult('info', 'Step 3: Reading from Google Sheets...');
+            await testGoogleSheets();
+            await new Promise(r => setTimeout(r, 1000));
+            
+            // Step 4: Test API Manager
+            addResult('info', 'Step 4: Testing API Manager...');
+            await testAPIManager();
+            await new Promise(r => setTimeout(r, 1000));
+            
+            // Step 5: Test website script
+            addResult('info', 'Step 5: Testing website script...');
+            await testWebsiteScript();
+            
+            addResult('success', '✅ Complete flow test finished!');
+            refreshStatus();
+        }
+
+        // Parse products (test version)
+        function parseProductsFromSheetsTest(values) {
+            const products = [];
+            
+            for (let i = 1; i < values.length; i++) {
+                const row = values[i];
+                if (!row || row.length === 0 || !row[1]) continue;
+                
+                const product = {
+                    id: row[0] || i,
+                    name: row[1] || '',
+                    price: row[2] || '',
+                    category: row[3] || 'Général',
+                    image: row[4] || 'https://via.placeholder.com/300x300?text=No+Image',
+                    description: row[5] || 'Description non disponible',
+                    created: row[6] || new Date().toISOString()
+                };
+                
+                if (product.name && product.name.trim() !== '') {
+                    products.push(product);
+                }
+            }
+            
+            return products;
+        }
+
+        // Refresh status
+        async function refreshStatus() {
+            // Update localStorage count
+            const localProducts = JSON.parse(localStorage.getItem('ostore-products') || '[]');
+            document.getElementById('localStorage-count').textContent = localProducts.length;
+            
+            // Update API Manager status
+            try {
+                if (typeof OStoreAPIManager !== 'undefined') {
+                    document.getElementById('api-status').textContent = 'OK';
+                } else {
+                    document.getElementById('api-status').textContent = 'NO';
+                }
+            } catch (error) {
+                document.getElementById('api-status').textContent = 'ERR';
+            }
+            
+            // Try to get Google Sheets count
+            try {
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${CONFIG.PRODUCTS_SHEET}!A:G?key=${CONFIG.SHEETS_API_KEY}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.values && data.values.length > 1) {
+                    document.getElementById('sheets-count').textContent = data.values.length - 1;
+                } else {
+                    document.getElementById('sheets-count').textContent = '0';
+                }
+            } catch (error) {
+                document.getElementById('sheets-count').textContent = 'ERR';
+            }
+            
+            // Check website products
+            if (typeof products !== 'undefined') {
+                document.getElementById('website-count').textContent = products.length;
+            } else {
+                document.getElementById('website-count').textContent = '0';
+            }
+        }
+
+        // Utility functions
+        function clearLocalProducts() {
+            localStorage.removeItem('ostore-products');
+            addResult('warning', '🗑️ Cleared localStorage products');
+            refreshStatus();
+        }
+
+        function viewGoogleSheets() {
+            window.open(`https://docs.google.com/spreadsheets/d/${CONFIG.SPREADSHEET_ID}/edit`, '_blank');
+        }
+
+        function addResult(type, message) {
+            const resultsContainer = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            
+            const colors = {
+                info: 'bg-blue-50 border-blue-200 text-blue-800',
+                success: 'bg-green-50 border-green-200 text-green-800',
+                error: 'bg-red-50 border-red-200 text-red-800',
+                warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+                data: 'bg-gray-50 border-gray-200 text-gray-800'
+            };
+            
+            resultDiv.className = `border rounded-lg p-4 ${colors[type]}`;
+            
+            if (type === 'data') {
+                resultDiv.innerHTML = `<pre class="text-xs overflow-auto max-h-64">${message}</pre>`;
+            } else {
+                resultDiv.innerHTML = `<p class="font-mono text-sm">${new Date().toLocaleTimeString()} - ${message}</p>`;
+            }
+            
+            resultsContainer.appendChild(resultDiv);
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function clearAllResults() {
+            document.getElementById('results').innerHTML = '';
+            addResult('info', '🗑️ Results cleared');
+        }
+    </script>
+</body>
+</html>

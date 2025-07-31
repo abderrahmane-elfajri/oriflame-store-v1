@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 O Store Admin Panel - TEST</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-green-600">🔧 O Store Admin - TEST VERSION</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="text-gray-700 hover:text-green-600 transition-colors">
+                        <i class="fas fa-home mr-2"></i>Retour au site
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <!-- Enhanced Add Product Form - ALWAYS VISIBLE -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">
+                    <i class="fas fa-plus-circle mr-2 text-green-600"></i>
+                    Ajouter un Nouveau Produit
+                </h3>
+                <p class="text-sm text-gray-600 mt-1">✅ FORM IS WORKING - Ajoutez des produits directement au site web</p>
+            </div>
+            <div class="p-6">
+                <form id="add-product-form" class="space-y-6">
+                    <!-- Product Name and Price Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="product-name" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-tag mr-1"></i>Nom du produit *
+                            </label>
+                            <input 
+                                type="text" 
+                                id="product-name" 
+                                placeholder="Ex: Parfum Oriflame Divine" 
+                                class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                required>
+                        </div>
+                        <div>
+                            <label for="product-price" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-dollar-sign mr-1"></i>Prix (DA) *
+                            </label>
+                            <input 
+                                type="number" 
+                                id="product-price" 
+                                placeholder="2850" 
+                                min="0" 
+                                step="50"
+                                class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                required>
+                        </div>
+                    </div>
+
+                    <!-- Category and Image Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="product-category" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-list mr-1"></i>Catégorie *
+                            </label>
+                            <select 
+                                id="product-category" 
+                                class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                required>
+                                <option value="">Sélectionner une catégorie</option>
+                                <option value="Parfum">🌸 Parfum</option>
+                                <option value="Maquillage">💄 Maquillage</option>
+                                <option value="Soins">🧴 Soins</option>
+                                <option value="Accessoires">👜 Accessoires</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="product-image" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-image mr-1"></i>URL de l'image *
+                            </label>
+                            <input 
+                                type="url" 
+                                id="product-image" 
+                                placeholder="https://images.unsplash.com/photo-1563170351-be82bc888aa4" 
+                                class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                required>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label for="product-description" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-align-left mr-1"></i>Description du produit
+                        </label>
+                        <textarea 
+                            id="product-description" 
+                            placeholder="Décrivez les caractéristiques et avantages du produit..." 
+                            class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                            rows="3"></textarea>
+                    </div>
+
+                    <!-- Image Preview -->
+                    <div id="image-preview" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-eye mr-1"></i>Aperçu de l'image
+                        </label>
+                        <img id="preview-img" src="" alt="Aperçu" class="w-32 h-32 object-cover rounded-lg border-2 border-gray-200">
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex justify-between items-center pt-4">
+                        <div class="text-sm text-gray-500">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            * Champs obligatoires
+                        </div>
+                        <button 
+                            type="submit" 
+                            class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center">
+                            <i class="fas fa-plus mr-2"></i>
+                            Ajouter le Produit
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Success Message Area -->
+        <div id="message-area" class="mt-6 hidden">
+            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm">Produit ajouté avec succès!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced Form Handler with Image Preview
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('add-product-form');
+            const imageInput = document.getElementById('product-image');
+            const imagePreview = document.getElementById('image-preview');
+            const previewImg = document.getElementById('preview-img');
+            const messageArea = document.getElementById('message-area');
+
+            // Image preview functionality
+            imageInput.addEventListener('input', function() {
+                const imageUrl = this.value.trim();
+                if (imageUrl) {
+                    previewImg.src = imageUrl;
+                    imagePreview.classList.remove('hidden');
+                    previewImg.onerror = function() {
+                        imagePreview.classList.add('hidden');
+                    };
+                } else {
+                    imagePreview.classList.add('hidden');
+                }
+            });
+
+            // Form submission
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Show loading state
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Envoi en cours...';
+                submitBtn.disabled = true;
+                
+                try {
+                    // Get form data
+                    const productData = {
+                        name: document.getElementById('product-name').value,
+                        price: document.getElementById('product-price').value + ' DA',
+                        category: document.getElementById('product-category').value,
+                        image: document.getElementById('product-image').value,
+                        description: document.getElementById('product-description').value || 'Nouveau produit Oriflame',
+                        id: Date.now(),
+                        created: new Date().toISOString()
+                    };
+
+                    // Save to localStorage first
+                    const products = JSON.parse(localStorage.getItem('ostore-products') || '[]');
+                    products.push(productData);
+                    localStorage.setItem('ostore-products', JSON.stringify(products));
+
+                    // Try to send to Google Sheets
+                    try {
+                        const response = await fetch('https://script.google.com/macros/s/AKfycbxeIRYYO00PSS-R1yHv_qNbnZwCTt0SzOvutKRVGQfKlk2VsmAKHR4VYhBdci8k4SXIEA/exec', {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                action: 'addProduct',
+                                product: productData,
+                                timestamp: new Date().toISOString()
+                            })
+                        });
+                        
+                        console.log('✅ Product sent to Google Sheets');
+                        messageArea.innerHTML = `
+                            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm">✅ Produit ajouté avec succès et envoyé vers Google Sheets!</p>
+                                        <p class="text-xs mt-1">Produit: ${productData.name} - ${productData.price}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                    } catch (syncError) {
+                        console.error('Sync error:', syncError);
+                        messageArea.innerHTML = `
+                            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm">⚠️ Produit ajouté localement mais erreur de sync avec Google Sheets</p>
+                                        <p class="text-xs mt-1">Produit: ${productData.name} - ${productData.price}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // Show success message
+                    messageArea.classList.remove('hidden');
+                    
+                    // Reset form
+                    form.reset();
+                    imagePreview.classList.add('hidden');
+                    
+                    // Log for testing
+                    console.log('Product added:', productData);
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    messageArea.innerHTML = `
+                        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm">❌ Erreur lors de l'ajout du produit</p>
+                                    <p class="text-xs mt-1">${error.message}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    messageArea.classList.remove('hidden');
+                } finally {
+                    // Restore button state
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
+                
+                // Hide message after 5 seconds
+                setTimeout(() => {
+                    messageArea.classList.add('hidden');
+                }, 5000);
+            });
+
+            // Real-time validation
+            const fields = ['product-name', 'product-price', 'product-category', 'product-image'];
+            fields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                field.addEventListener('input', function() {
+                    if (this.value.trim()) {
+                        this.classList.remove('border-red-500');
+                        this.classList.add('border-green-500');
+                    } else {
+                        this.classList.remove('border-green-500');
+                        this.classList.add('border-red-500');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

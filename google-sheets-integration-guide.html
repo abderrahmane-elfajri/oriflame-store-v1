@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Google Sheets Orders Integration Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">🔧 Complete Orders Integration Guide</h1>
+            
+            <!-- Current Status -->
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                <h3 class="font-semibold text-yellow-800">⚠️ Current Situation</h3>
+                <p class="text-yellow-700 text-sm mt-2">
+                    Orders are currently saved to localStorage (browser storage) instead of Google Sheets. 
+                    This is because Google Sheets API doesn't allow direct writes from frontend JavaScript for security reasons.
+                </p>
+            </div>
+            
+            <!-- Solutions -->
+            <div class="space-y-6">
+                <!-- Solution 1: Manual Copy -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-blue-800 mb-3">
+                        <i class="fas fa-copy mr-2"></i>Solution 1: Manual Copy (Immediate)
+                    </h3>
+                    <p class="text-blue-700 text-sm mb-3">
+                        Use the Orders Manager to copy orders from browser storage to Google Sheets manually.
+                    </p>
+                    <div class="space-x-2">
+                        <button onclick="window.open('orders-manager.html', '_blank')" 
+                                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                            📋 Open Orders Manager
+                        </button>
+                        <button onclick="window.open('https://docs.google.com/spreadsheets/d/1LlYjTmwoqZCqkyOuXHpgy5PHKMFAoqcQXBqvt3qyxE8/edit', '_blank')" 
+                                class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                            📊 Open Your Spreadsheet
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Solution 2: Google Apps Script -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-green-800 mb-3">
+                        <i class="fas fa-robot mr-2"></i>Solution 2: Google Apps Script (Automatic)
+                    </h3>
+                    <p class="text-green-700 text-sm mb-3">
+                        Set up a Google Apps Script to automatically receive and save orders to your spreadsheet.
+                    </p>
+                    
+                    <div class="bg-white rounded p-3 mb-3">
+                        <h4 class="font-semibold text-sm mb-2">📋 Step-by-Step Instructions:</h4>
+                        <ol class="list-decimal list-inside text-sm text-gray-700 space-y-1">
+                            <li>Go to <a href="https://script.google.com/" target="_blank" class="text-blue-600 underline">script.google.com</a></li>
+                            <li>Click "New Project"</li>
+                            <li>Delete the default code and paste the script from google-apps-script-order-handler.js</li>
+                            <li>Save the project (name it "O Store Order Handler")</li>
+                            <li>Click "Deploy" → "New deployment"</li>
+                            <li>Type: "Web app", Execute as: "Me", Access: "Anyone"</li>
+                            <li>Click "Deploy" and copy the web app URL</li>
+                            <li>Update your website code to use this URL for order submission</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="space-x-2">
+                        <button onclick="window.open('https://script.google.com/', '_blank')" 
+                                class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                            🚀 Go to Apps Script
+                        </button>
+                        <button onclick="copyScriptCode()" 
+                                class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                            📋 Copy Script Code
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Solution 3: Third-party Service -->
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-purple-800 mb-3">
+                        <i class="fas fa-cloud mr-2"></i>Solution 3: Third-party Service (Advanced)
+                    </h3>
+                    <p class="text-purple-700 text-sm mb-3">
+                        Use services like Zapier, Make.com, or a custom backend to bridge your website and Google Sheets.
+                    </p>
+                    <div class="space-x-2">
+                        <button onclick="window.open('https://zapier.com/', '_blank')" 
+                                class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                            🔗 Zapier
+                        </button>
+                        <button onclick="window.open('https://make.com/', '_blank')" 
+                                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                            🔗 Make.com
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Current Orders Status -->
+            <div class="bg-gray-50 rounded-lg p-4 mt-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">📊 Current Orders Status</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600" id="stored-orders">0</div>
+                        <div class="text-sm text-gray-600">Orders in Browser Storage</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600">✓</div>
+                        <div class="text-sm text-gray-600">Order Form Working</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-yellow-600">⚠️</div>
+                        <div class="text-sm text-gray-600">Manual Sync Required</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="bg-gray-50 rounded-lg p-4 mt-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">⚡ Quick Actions</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onclick="testOrder()" 
+                            class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700">
+                        🧪 Submit Test Order
+                    </button>
+                    <button onclick="checkOrders()" 
+                            class="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700">
+                        🔍 Check Stored Orders
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Log -->
+            <div class="bg-gray-50 rounded-lg p-4 mt-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">📝 Activity Log</h3>
+                <div id="log" class="text-sm text-gray-700 font-mono whitespace-pre-wrap bg-white p-3 rounded border max-h-32 overflow-y-auto">Ready...\n</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+        
+        function copyScriptCode() {
+            // This would copy the Apps Script code to clipboard
+            log('📋 To get the script code, open google-apps-script-order-handler.js file');
+            log('💡 Copy all the code from that file into your Google Apps Script project');
+        }
+        
+        function testOrder() {
+            const testOrder = {
+                customerName: 'Test Client',
+                customerPhone: '+213-123-456-789',
+                customerAddress: '123 Test Street, Algiers',
+                products: [{ name: 'Test Product', quantity: 1 }],
+                orderTotal: '850',
+                notes: 'Test order from integration guide',
+                timestamp: new Date().toISOString()
+            };
+            
+            try {
+                const orders = JSON.parse(localStorage.getItem('ostore-orders') || '[]');
+                orders.push({
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    ...testOrder
+                });
+                localStorage.setItem('ostore-orders', JSON.stringify(orders));
+                
+                log('✅ Test order submitted successfully!');
+                updateOrdersCount();
+            } catch (error) {
+                log('❌ Error submitting test order: ' + error.message);
+            }
+        }
+        
+        function checkOrders() {
+            try {
+                const orders = JSON.parse(localStorage.getItem('ostore-orders') || '[]');
+                log(`📊 Found ${orders.length} orders in browser storage`);
+                
+                if (orders.length > 0) {
+                    log('💡 Use Orders Manager to copy these to Google Sheets');
+                    log('🔗 Click "Open Orders Manager" button above');
+                } else {
+                    log('ℹ️ No orders found. Try submitting a test order first.');
+                }
+                
+                updateOrdersCount();
+            } catch (error) {
+                log('❌ Error checking orders: ' + error.message);
+            }
+        }
+        
+        function updateOrdersCount() {
+            try {
+                const orders = JSON.parse(localStorage.getItem('ostore-orders') || '[]');
+                document.getElementById('stored-orders').textContent = orders.length;
+            } catch (error) {
+                document.getElementById('stored-orders').textContent = '?';
+            }
+        }
+        
+        // Auto-run on page load
+        window.addEventListener('load', () => {
+            log('🚀 Integration guide loaded');
+            updateOrdersCount();
+            checkOrders();
+        });
+    </script>
+</body>
+</html>
