@@ -2,8 +2,8 @@
 const ADMIN_CONFIG = {
     SPREADSHEET_ID: '1LlYjTmwoqZCqkyOuXHpgy5PHKMFAoqcQXBqvt3qyxE8',
     SHEETS_API_KEY: 'AIzaSyCzJE3U_XZhjVPukHjbVYmikwptj0sqY4k',
-    SHEETS_PRODUCTS_URL: 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec?action=getProducts',
-    SHEETS_ORDERS_URL: 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec?action=getOrders'
+    PRODUCTS_SHEET: 'SHEETS_PRODUCTS',
+    ORDERS_SHEET: 'SHEETS_ORDERS'
 };
 
 // Global variables
@@ -12,93 +12,80 @@ let orders = [];
 
 // DOM Content Loaded
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔧 O Store Admin Panel Loaded');
     initializeAdmin();
 });
 
 // Initialize Admin Panel
 function initializeAdmin() {
     setupTabs();
-    setupModals();
     setupEventListeners();
     loadDashboardData();
+    initializeAPIManager();
 }
 
 // Setup Tabs
 function setupTabs() {
-    const tabButtons = document.querySelectorAll('.tab-button');
-    const tabContents = document.querySelectorAll('.tab-content');
-
-    tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const tabName = this.getAttribute('data-tab');
-            
-            // Update active tab button
-            tabButtons.forEach(btn => {
-                btn.classList.remove('active', 'border-green-500', 'text-green-600');
-                btn.classList.add('border-transparent', 'text-gray-500');
-            });
-            
-            this.classList.add('active', 'border-green-500', 'text-green-600');
-            this.classList.remove('border-transparent', 'text-gray-500');
-            
-            // Show active tab content
-            tabContents.forEach(content => content.classList.add('hidden'));
-            document.getElementById(`${tabName}-tab`).classList.remove('hidden');
-            
-            // Load tab-specific data
-            if (tabName === 'products') {
-                loadProducts();
-            } else if (tabName === 'orders') {
-                loadOrders();
-            }
-        });
-    });
-}
-
-// Setup Modals
-function setupModals() {
-    const addProductBtn = document.getElementById('add-product-btn');
-    const addProductModal = document.getElementById('add-product-modal');
-    const closeModalBtn = document.getElementById('close-modal');
-    const cancelBtn = document.getElementById('cancel-product');
-    
-    addProductBtn.addEventListener('click', () => {
-        addProductModal.classList.remove('hidden');
-    });
-    
-    closeModalBtn.addEventListener('click', () => {
-        addProductModal.classList.add('hidden');
-    });
-    
-    cancelBtn.addEventListener('click', () => {
-        addProductModal.classList.add('hidden');
-    });
-    
-    // Close modal when clicking outside
-    addProductModal.addEventListener('click', (e) => {
-        if (e.target === addProductModal) {
-            addProductModal.classList.add('hidden');
-        }
-    });
+    // Tab switching is handled by the showTab function
 }
 
 // Setup Event Listeners
 function setupEventListeners() {
-    // Refresh button
-    document.getElementById('refresh-data').addEventListener('click', () => {
-        loadDashboardData();
-        showNotification('Données actualisées!', 'success');
+    // Add any additional event listeners here
+}
+
+// Initialize API Manager
+function initializeAPIManager() {
+    try {
+        if (typeof OStoreAPIManager !== 'undefined') {
+            window.oStoreAPIManager = new OStoreAPIManager();
+            console.log('✅ API Manager initialized successfully');
+        } else {
+            console.warn('⚠️ API Manager not available');
+        }
+    } catch (error) {
+        console.error('❌ Failed to initialize API Manager:', error);
+    }
+}
+
+// Tab Management
+function showTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.add('hidden');
     });
     
-    // Add product form
-    document.getElementById('add-product-form').addEventListener('submit', handleAddProduct);
+    // Remove active class from all buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-green-500', 'text-green-600');
+        btn.classList.add('border-transparent', 'text-gray-500');
+    });
     
-    // Settings buttons
-    document.getElementById('test-connection').addEventListener('click', testConnection);
-    document.getElementById('open-sheets').addEventListener('click', openGoogleSheets);
+    // Show selected tab
+    const selectedTab = document.getElementById(tabName + '-tab');
+    if (selectedTab) {
+        selectedTab.classList.remove('hidden');
+    }
     
-    // Order status filter
-    document.getElementById('order-status-filter').addEventListener('change', filterOrders);
+    // Activate selected button
+    const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
+    if (activeBtn) {
+        activeBtn.classList.remove('border-transparent', 'text-gray-500');
+        activeBtn.classList.add('border-green-500', 'text-green-600');
+    }
+
+    // Load specific tab data
+    switch (tabName) {
+        case 'orders':
+            loadOrders();
+            break;
+        case 'products':
+            loadProducts();
+            break;
+        case 'dashboard':
+            loadDashboardData();
+            break;
+    }
 }
 
 // Load Dashboard Data
@@ -632,3 +619,322 @@ window.addEventListener('load', () => {
     // Load initial data
     loadDashboardData();
 });
+
+// Essential missing functions for admin functionality
+
+// Load Orders from localStorage and display
+function loadOrders() {
+    try {
+        const orders = JSON.parse(localStorage.getItem('ostore-orders') || '[]');
+        const ordersContainer = document.getElementById('orders-list');
+        
+        if (!ordersContainer) return;
+
+        if (orders.length === 0) {
+            ordersContainer.innerHTML = `
+                <div class="text-center py-12">
+                    <i class="fas fa-shopping-cart text-gray-400 text-4xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Aucune commande</h3>
+                    <p class="text-gray-500">Les commandes apparaîtront ici une fois reçues.</p>
+                </div>
+            `;
+            return;
+        }
+
+        ordersContainer.innerHTML = orders.reverse().map(order => `
+            <div class="bg-white rounded-lg shadow p-6 mb-4">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">${order.customerName || 'N/A'}</h3>
+                        <p class="text-gray-600">${order.email || 'Email non fourni'}</p>
+                        <p class="text-gray-600">${order.phone || 'Téléphone non fourni'}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Nouvelle
+                        </span>
+                        <p class="text-sm text-gray-500 mt-1">
+                            ${new Date(order.timestamp || order.date).toLocaleDateString('fr-FR', { 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="border-t border-gray-200 pt-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2">Produit commandé</h4>
+                            <p class="text-gray-700">${order.productName || 'Produit non spécifié'}</p>
+                            <p class="text-sm text-gray-500">Quantité: ${order.quantity || 1}</p>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2">Adresse de livraison</h4>
+                            <p class="text-gray-700">${order.address || 'Adresse non fournie'}</p>
+                            <p class="text-sm text-gray-500">Wilaya: ${order.wilaya || 'Non spécifiée'}</p>
+                        </div>
+                    </div>
+                    
+                    ${order.notes ? `
+                        <div class="mt-4">
+                            <h4 class="font-medium text-gray-900 mb-2">Notes</h4>
+                            <p class="text-gray-700 bg-gray-50 p-3 rounded">${order.notes}</p>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="mt-4 flex justify-between items-center">
+                        <div>
+                            <span class="text-lg font-bold text-gray-900">Total: ${order.orderTotal || 'N/A'}</span>
+                        </div>
+                        <button onclick="contactCustomer('${order.phone || ''}')" 
+                                class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                            <i class="fas fa-phone mr-2"></i>Contacter
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        console.log('✅ Orders loaded:', orders.length);
+    } catch (error) {
+        console.error('Error loading orders:', error);
+    }
+}
+
+// Load Recent Orders for Dashboard
+function loadRecentOrders(orders) {
+    const container = document.getElementById('recent-orders');
+    if (!container) return;
+
+    if (!orders || orders.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-4">Aucune commande récente</p>';
+        return;
+    }
+
+    container.innerHTML = orders.map(order => `
+        <div class="border-b border-gray-200 pb-4 mb-4 last:border-b-0">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="font-medium text-gray-900">${order.customerName || 'N/A'}</p>
+                    <p class="text-sm text-gray-600">${order.productName || 'Produit non spécifié'}</p>
+                    <p class="text-sm text-gray-500">
+                        ${new Date(order.timestamp || order.date).toLocaleDateString('fr-FR')}
+                    </p>
+                </div>
+                <div class="text-right">
+                    <p class="font-medium text-gray-900">${order.orderTotal || 'N/A'}</p>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Nouvelle
+                    </span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Update Dashboard Stats
+function updateDashboardStats() {
+    try {
+        const orders = JSON.parse(localStorage.getItem('ostore-orders') || '[]');
+        const today = new Date().toDateString();
+        const todayOrders = orders.filter(order => {
+            const orderDate = new Date(order.timestamp || order.date).toDateString();
+            return orderDate === today;
+        });
+
+        const totalRevenue = orders.reduce((sum, order) => {
+            const total = parseFloat(order.orderTotal?.replace(/[^\d.]/g, '') || 0);
+            return sum + total;
+        }, 0);
+
+        // Update stats
+        document.getElementById('total-orders').textContent = orders.length;
+        document.getElementById('today-orders').textContent = todayOrders.length;
+        document.getElementById('total-revenue').textContent = totalRevenue.toLocaleString('fr-FR') + ' DA';
+        
+        const productsElement = document.getElementById('total-products');
+        if (productsElement) {
+            productsElement.textContent = products.length;
+        }
+
+        // Load recent orders
+        const recentOrders = orders.slice(-5).reverse();
+        loadRecentOrders(recentOrders);
+
+        console.log('✅ Dashboard data updated');
+    } catch (error) {
+        console.error('Error updating dashboard stats:', error);
+    }
+}
+
+// Contact Customer
+function contactCustomer(phone) {
+    if (!phone) {
+        alert('Numéro de téléphone non disponible');
+        return;
+    }
+    
+    const message = encodeURIComponent('Bonjour, nous avons reçu votre commande sur O Store. Nous vous contactons pour confirmer les détails.');
+    const whatsappUrl = `https://wa.me/213${phone.replace(/^0/, '')}?text=${message}`;
+    window.open(whatsappUrl, '_blank');
+}
+
+// Clear All Orders
+function clearAllOrders() {
+    if (confirm('Êtes-vous sûr de vouloir supprimer toutes les commandes ? Cette action est irréversible.')) {
+        localStorage.removeItem('ostore-orders');
+        loadOrders();
+        updateDashboardStats();
+        alert('Toutes les commandes ont été supprimées.');
+    }
+}
+
+// Export Orders
+function exportOrders() {
+    try {
+        const orders = JSON.parse(localStorage.getItem('ostore-orders') || '[]');
+        
+        if (orders.length === 0) {
+            alert('Aucune commande à exporter');
+            return;
+        }
+
+        // Create CSV content
+        const headers = ['Date', 'Client', 'Email', 'Téléphone', 'Produit', 'Quantité', 'Total', 'Adresse', 'Wilaya', 'Notes'];
+        const csvContent = [
+            headers.join(','),
+            ...orders.map(order => [
+                new Date(order.timestamp || order.date).toLocaleDateString('fr-FR'),
+                `"${order.customerName || ''}"`,
+                order.email || '',
+                order.phone || '',
+                `"${order.productName || ''}"`,
+                order.quantity || 1,
+                order.orderTotal || '',
+                `"${order.address || ''}"`,
+                order.wilaya || '',
+                `"${order.notes || ''}"`
+            ].join(','))
+        ].join('\n');
+
+        // Create and download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `ostore-commandes-${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+        
+        console.log('✅ Orders exported');
+    } catch (error) {
+        console.error('Error exporting orders:', error);
+        alert('Erreur lors de l\'export des commandes');
+    }
+}
+
+// Backup Data
+function backupData() {
+    try {
+        const orders = JSON.parse(localStorage.getItem('ostore-orders') || '[]');
+        const backup = {
+            timestamp: new Date().toISOString(),
+            orders: orders,
+            version: '1.0'
+        };
+
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `ostore-backup-${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error creating backup:', error);
+        alert('Erreur lors de la création de la sauvegarde');
+    }
+}
+
+// Open Google Sheets
+function openGoogleSheets() {
+    const spreadsheetId = ADMIN_CONFIG.SPREADSHEET_ID;
+    const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+    window.open(url, '_blank');
+}
+
+// Load Products for products tab  
+function loadProducts() {
+    const container = document.getElementById('products-list');
+    if (!container) return;
+    
+    // Try to load from API Manager first
+    if (typeof window.oStoreAPIManager !== 'undefined') {
+        window.oStoreAPIManager.getProducts().then(result => {
+            if (result.success && result.products) {
+                displayProductsList(result.products);
+            } else {
+                displayProductsList([]);
+            }
+        }).catch(error => {
+            console.error('Error loading products:', error);
+            displayProductsList([]);
+        });
+    } else {
+        displayProductsList([]);
+    }
+}
+
+// Display Products List
+function displayProductsList(productsList) {
+    const container = document.getElementById('products-list');
+    if (!container) return;
+    
+    if (productsList.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-12">
+                <i class="fas fa-box text-gray-400 text-4xl mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Aucun produit</h3>
+                <p class="text-gray-500">Configurez votre Google Sheets pour voir les produits ici.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            ${productsList.map(product => `
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <img src="${product.image}" alt="${product.name}" class="w-full h-32 object-cover rounded-lg mb-3">
+                    <h4 class="font-medium text-gray-900 mb-1">${product.name}</h4>
+                    <p class="text-sm text-gray-600 mb-2">${product.description}</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-lg font-bold text-green-600">${product.price}</span>
+                        <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">${product.category}</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// Save Settings
+function saveSettings() {
+    const settings = {
+        spreadsheetId: document.getElementById('spreadsheet-id').value,
+        apiKey: document.getElementById('api-key').value,
+        scriptUrl: document.getElementById('script-url').value
+    };
+    
+    localStorage.setItem('ostore-admin-settings', JSON.stringify(settings));
+    alert('Paramètres sauvegardés avec succès !');
+}
+
+// Sync with Sheets
+function syncWithSheets() {
+    alert('Fonctionnalité de synchronisation en cours de développement');
+}

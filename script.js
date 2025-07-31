@@ -3,18 +3,8 @@ const CONFIG = {
     // Your Google Sheets ID (already correct)
     SPREADSHEET_ID: '1LlYjTmwoqZCqkyOuXHpgy5PHKMFAoqcQXBqvt3qyxE8',
     
-    // Google Sheets API Key (if you want to use direct API calls as alternati        if (typeof SheetsAPI !== 'undefined') {
-        try {
-            console.log('📡 Method 1: Using SheetsAPI...');
-            const sheetsApi = new SheetsAPI(CONFIG);
-            const data = await sheetsApi.getSpreadsheetData(`${CONFIG.PRODUCTS_SHEET}!A:G`);
-            
-            if (data.values && data.values.length > 1) {
-                return parseProductsFromSheets(data.values);
-            }
-        } catch (error) {
-            console.warn('SheetsAPI failed:', error.message);
-        }ETS_API_KEY: 'AIzaSyCzJE3U_XZhjVPukHjbVYmikwptj0sqY4k',
+    // Google Sheets API Key (if you want to use direct API calls as alternative)
+    SHEETS_API_KEY: 'AIzaSyCzJE3U_XZhjVPukHjbVYmikwptj0sqY4k',
     
     // Correct sheet name from your spreadsheet
     PRODUCTS_SHEET: 'SHEETS_PRODUCTS',
