@@ -15,16 +15,28 @@ const ORDER_CONFIG = {
 };
 
 // Global variables
-let products = [];
+let orderProducts = []; // Products available for ordering
 let filteredProducts = [];
 let selectedProducts = []; // Array to store multiple selected products
+
+// Helper function to parse price safely
+function parsePrice(priceString) {
+    if (typeof priceString === 'number') {
+        return priceString;
+    }
+    
+    if (!priceString || priceString === '') {
+        return 0;
+    }
+    
+    // Convert to string and remove all non-numeric characters except decimal point
+    const numericValue = parseFloat(priceString.toString().replace(/[^\d.]/g, ''));
+    return isNaN(numericValue) ? 0 : numericValue;
+}
 let orderTotal = 0;
 let currentView = 'grid'; // 'grid' or 'table'
 
-// DOM Content Loaded
-document.addEventListener('DOMContentLoaded', function() {
-    initializeOrderPage();
-});
+// Note: Main initialization is handled by the DOMContentLoaded listener at the end of this file
 
 // Initialize Order Page
 function initializeOrderPage() {
@@ -116,74 +128,80 @@ async function loadOrderProducts() {
     try {
         showProductsLoading();
         
-        console.log('🔄 Loading products for order page...');
+        console.log('🔄 Loading products for order page from Google Sheets only...');
         
-        // For immediate fix, load fallback products directly
-        // This ensures the order page works right away
-        await loadFallbackOrderProducts();
+        // Try to load from Google Sheets only
+        const result = await tryLoadOrderProducts();
         
-        // Then try to load from API in background
-        setTimeout(async () => {
-            try {
-                if (typeof window.oStoreAPIManager !== 'undefined') {
-                    console.log('📡 Trying API Manager in background...');
-                    const result = await window.oStoreAPIManager.getProducts();
-                    
-                    if (result.success && result.products && result.products.length > 0) {
-                        products = result.products;
-                        filteredProducts = [...products];
-                        displayProducts(filteredProducts);
-                        console.log('✅ API products loaded and updated on order page!');
-                        showNotification('Produits mis à jour depuis l\'API', 'success');
-                    }
-                }
-            } catch (error) {
-                console.log('Background API update failed:', error.message);
-            }
-        }, 2000);
+        if (result && result.success && result.products && result.products.length > 0) {
+            orderProducts = result.products;
+            displayOrderProducts(orderProducts);
+            hideProductsLoading();
+            console.log('✅ Products loaded successfully from Google Sheets');
+        } else {
+            // No fallback - show error
+            orderProducts = [];
+            hideProductsLoading();
+            showNoProducts();
+            console.log('❌ No products found in Google Sheets');
+        }
         
     } catch (error) {
         console.error('Error loading order products:', error);
         
-        // Ensure fallback products are loaded
-        await loadFallbackOrderProducts();
+        // No fallback - show error
+        orderProducts = [];
+        hideProductsLoading();
+        showNoProducts();
     }
 }
 
 // Try multiple methods to load products for orders
 async function tryLoadOrderProducts() {
-    // Method 1: Use SheetsAPI if available
-    if (typeof SheetsAPI !== 'undefined') {
+    console.log('🔍 Starting product loading process...');
+    
+    // Method 1: Use OStoreAPIManager if available
+    if (typeof OStoreAPIManager !== 'undefined') {
         try {
-            console.log('📡 Method 1: Using SheetsAPI...');
-            const sheetsApi = new SheetsAPI(ORDER_CONFIG);
-            const data = await sheetsApi.getSpreadsheetData(`${ORDER_CONFIG.PRODUCTS_SHEET}!A:E`);
-            
-            if (data.values && data.values.length > 1) {
-                return parseProductsFromSheets(data.values);
+            console.log('📡 Method 1: Using OStoreAPIManager...');
+            const apiManager = new OStoreAPIManager();
+            const result = await apiManager.getProducts();
+            if (result.success && result.products && result.products.length > 0) {
+                console.log('✅ OStoreAPIManager returned', result.products.length, 'products');
+                return { success: true, products: result.products };
+            } else {
+                console.warn('⚠️ OStoreAPIManager returned no products:', result);
             }
         } catch (error) {
-            console.warn('SheetsAPI failed:', error.message);
+            console.warn('❌ OStoreAPIManager failed:', error.message);
         }
     }
     
-    // Method 2: Use local API if available
-    if (typeof window.oStoreAPI !== 'undefined') {
+    // Method 2: Use SheetsAPI if available
+    if (typeof SheetsAPI !== 'undefined') {
         try {
-            console.log('📡 Method 2: Using local API...');
-            const result = await window.oStoreAPI.getProducts();
-            if (result.success && result.products) {
-                return result.products;
+            console.log('📡 Method 2: Using SheetsAPI...');
+            const sheetsApi = new SheetsAPI(ORDER_CONFIG);
+            const data = await sheetsApi.getSpreadsheetData(`${ORDER_CONFIG.PRODUCTS_SHEET}!A:G`);
+            
+            if (data.values && data.values.length > 1) {
+                const products = parseProductsFromSheets(data.values);
+                console.log('✅ SheetsAPI returned', products.length, 'products');
+                return { success: true, products: products };
+            } else {
+                console.warn('⚠️ SheetsAPI returned no data:', data);
             }
         } catch (error) {
-            console.warn('Local API failed:', error.message);
+            console.warn('❌ SheetsAPI failed:', error.message);
         }
     }
     
     // Method 3: Direct Google Sheets API
     try {
         console.log('📡 Method 3: Direct Google Sheets API...');
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${ORDER_CONFIG.SPREADSHEET_ID}/values/${ORDER_CONFIG.PRODUCTS_SHEET}!A:E?key=${ORDER_CONFIG.SHEETS_API_KEY}`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${ORDER_CONFIG.SPREADSHEET_ID}/values/${ORDER_CONFIG.PRODUCTS_SHEET}!A:G?key=${ORDER_CONFIG.SHEETS_API_KEY}`;
+        
+        console.log('🔗 Fetching from URL:', url);
         
         const response = await fetch(url, {
             method: 'GET',
@@ -193,91 +211,81 @@ async function tryLoadOrderProducts() {
         
         if (response.ok) {
             const data = await response.json();
+            console.log('📊 Raw Google Sheets data:', data);
+            
             if (data.values && data.values.length > 1) {
-                return parseProductsFromSheets(data.values);
+                const products = parseProductsFromSheets(data.values);
+                console.log('✅ Direct API returned', products.length, 'products');
+                return { success: true, products: products };
+            } else {
+                console.warn('⚠️ Direct API returned no data or empty sheet:', data);
             }
+        } else {
+            console.error('❌ Direct API HTTP error:', response.status, response.statusText);
         }
     } catch (error) {
-        console.warn('Direct API failed:', error.message);
+        console.warn('❌ Direct API failed:', error.message);
     }
     
-    return null;
+    console.error('❌ All methods failed to load products');
+    return { success: false, products: [], error: 'Unable to load products from any source' };
 }
 
 // Parse products from Google Sheets format for orders
 function parseProductsFromSheets(values) {
+    console.log('🔄 Parsing products from sheets data:', values);
+    
+    if (!values || values.length < 2) {
+        console.warn('⚠️ No data to parse or insufficient rows');
+        return [];
+    }
+    
     const headers = values[0];
-    return values.slice(1).map((row, index) => {
-        const product = { id: index + 1 };
+    console.log('📋 Headers found:', headers);
+    
+    const products = values.slice(1).map((row, index) => {
+        const product = { 
+            id: row[0] || (index + 1).toString()
+        };
+        
+        // Map common column names
         headers.forEach((header, idx) => {
-            const key = header.toLowerCase();
-            product[key] = row[idx] || '';
+            if (!header) return;
+            
+            const key = header.toLowerCase().trim();
+            const value = row[idx] || '';
+            
+            // Map standard columns
+            if (key.includes('name') || key === 'nom' || key === 'produit') {
+                product.name = value;
+            } else if (key.includes('price') || key === 'prix' || key === 'price') {
+                product.price = value;
+            } else if (key.includes('category') || key === 'categorie' || key === 'catégorie') {
+                product.category = value;
+            } else if (key.includes('image') || key === 'image_url') {
+                product.image = value;
+            } else if (key.includes('description') || key === 'desc') {
+                product.description = value;
+            } else {
+                product[key] = value;
+            }
         });
-        return product;
-    }).filter(product => product.name && product.name.trim() !== '');
-}
-
-// Fallback products for orders when API fails
-async function loadFallbackOrderProducts() {
-    const fallbackProducts = [
-        {
-            id: 1,
-            name: "Parfum Oriflame Eclat",
-            price: "850 DA",
-            category: "Parfum",
-            image: "https://images.unsplash.com/photo-1563170351-be82bc888aa4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-            description: "Parfum élégant aux notes florales"
-        },
-        {
-            id: 2,
-            name: "Rouge à Lèvres Velours",
-            price: "420 DA",
-            category: "Maquillage",
-            image: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-            description: "Rouge à lèvres longue tenue"
-        },
-        {
-            id: 3,
-            name: "Crème Hydratante Visage",
-            price: "650 DA",
-            category: "Soins",
-            image: "https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-            description: "Crème hydratante pour tous types de peau"
-        },
-        {
-            id: 4,
-            name: "Mascara Volume",
-            price: "380 DA",
-            category: "Maquillage",
-            image: "https://images.unsplash.com/photo-1631214540242-3a7976a8c7e0?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-            description: "Mascara pour un volume intense"
-        },
-        {
-            id: 5,
-            name: "Eau de Toilette Fresh",
-            price: "720 DA",
-            category: "Parfum",
-            image: "https://images.unsplash.com/photo-1541643600914-78b084683601?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-            description: "Eau de toilette fraîche et légère"
-        },
-        {
-            id: 6,
-            name: "Fond de Teint Natural",
-            price: "590 DA",
-            category: "Maquillage",
-            image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-            description: "Fond de teint effet naturel"
+        
+        // Ensure required fields have defaults
+        if (!product.name) product.name = `Produit ${product.id}`;
+        if (!product.price) product.price = '0 MAD';
+        if (!product.category) product.category = 'Général';
+        if (!product.description) product.description = 'Description non disponible';
+        if (!product.image || !product.image.startsWith('http')) {
+            product.image = 'https://via.placeholder.com/300x300?text=No+Image';
         }
-    ];
+        
+        console.log('📦 Parsed product:', product);
+        return product;
+    }).filter(product => product.name && product.name.trim() !== '' && product.name !== 'Produit');
     
-    // Simulate loading delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    products = fallbackProducts;
-    filteredProducts = [...products];
-    displayProducts(filteredProducts);
-    hideProductsLoading();
-    console.log('✅ Fallback order products loaded');
+    console.log('✅ Successfully parsed', products.length, 'valid products');
+    return products;
 }
 
 // Legacy function kept for compatibility
@@ -459,12 +467,12 @@ function setupCategoryFilters() {
             
             // Filter products
             if (category === 'all') {
-                filteredProducts = [...products];
+                filteredProducts = [...orderProducts];
             } else {
-                filteredProducts = products.filter(product => product.category === category);
+                filteredProducts = orderProducts.filter(product => product.category === category);
             }
             
-            displayProducts(filteredProducts);
+            displayOrderProducts(filteredProducts);
         });
     });
 }
@@ -509,7 +517,7 @@ function addToOrder(productId) {
     
     // Convert productId to number for comparison
     const numericId = parseInt(productId);
-    const product = products.find(p => p.id === numericId || p.id === productId);
+    const product = orderProducts.find(p => p.id === numericId || p.id === productId);
     
     console.log('Found product:', product);
     
@@ -530,15 +538,39 @@ function addToOrder(productId) {
             console.log('Added new product to cart');
         }
         
-        displayProducts(filteredProducts);
-        updateOrderSummary();
+        // Update the summary instead of redisplaying products
+        updateSelectedProductsSummary();
         
-        // Show success notification
-        showNotification(`${product.name} ajouté à votre commande!`, 'success');
+        // Show success message
+        showOrderNotification(`${product.name} ajouté à votre commande!`, 'success');
+        
+        // Auto-close product browser after adding
+        const browserSection = document.getElementById('product-browser-section');
+        if (!browserSection.classList.contains('hidden')) {
+            setTimeout(() => {
+                browserSection.classList.add('hidden');
+            }, 1000);
+        }
     } else {
-        console.error('Product not found:', productId);
-        showNotification('Erreur: Produit non trouvé', 'error');
+        console.error('Product not found with ID:', productId);
+        showOrderNotification('Produit non trouvé', 'error');
     }
+}
+
+// Simple notification function for order page
+function showOrderNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium ${
+        type === 'success' ? 'bg-green-600' : 
+        type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
 }
 
 // Remove Product from Order
@@ -592,31 +624,34 @@ function updateOrderSummary() {
         orderTotal = 0;
     } else {
         orderTotal = selectedProducts.reduce((total, product) => {
-            const priceValue = parseFloat(product.price.replace(/[^\d.]/g, ''));
+            const priceValue = parsePrice(product.price);
             return total + (priceValue * product.quantity);
         }, 0);
         
         summaryContainer.innerHTML = `
             <div class="bg-white border border-green-200 rounded-lg p-4 space-y-3">
-                ${selectedProducts.map(product => `
+                ${selectedProducts.map(product => {
+                    const unitPrice = parsePrice(product.price);
+                    const productTotal = unitPrice * product.quantity;
+                    return `
                     <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
                         <div class="flex items-center space-x-3">
                             <img src="${product.image}" alt="${product.name}" class="w-12 h-12 object-cover rounded-lg">
                             <div>
                                 <p class="font-medium text-gray-800">${product.name}</p>
-                                <p class="text-sm text-gray-600">${product.quantity} × ${product.price}</p>
+                                <p class="text-sm text-gray-600">${product.quantity} × ${unitPrice} MAD</p>
                             </div>
                         </div>
                         <div class="text-right">
-                            <p class="font-semibold text-green-600">${(parseFloat(product.price.replace(/[^\d.]/g, '')) * product.quantity).toFixed(2)} DA</p>
+                            <p class="font-semibold text-green-600">${productTotal.toFixed(2)} MAD</p>
                         </div>
                     </div>
-                `).join('')}
+                `;}).join('')}
             </div>
         `;
     }
     
-    orderTotalElement.textContent = orderTotal.toFixed(2) + ' DA';
+    orderTotalElement.textContent = orderTotal.toFixed(2) + ' MAD';
     
     // Enable/disable form submission
     const submitButton = document.querySelector('button[type="submit"]');
@@ -639,13 +674,19 @@ function setupOrderForm() {
         
         const formData = new FormData(orderForm);
         
+        // Calculate the current total
+        const currentTotal = selectedProducts.reduce((sum, product) => {
+            const unitPrice = parsePrice(product.price);
+            return sum + (unitPrice * product.quantity);
+        }, 0);
+        
         const orderData = {
             customerName: formData.get('customerName'),
             customerPhone: formData.get('customerPhone'),
             customerAddress: formData.get('customerAddress'),
             products: selectedProducts,
             notes: formData.get('notes'),
-            orderTotal: orderTotal.toFixed(2),
+            orderTotal: currentTotal.toFixed(2),
             timestamp: new Date().toISOString()
         };
         
@@ -834,6 +875,144 @@ function hideProductsLoading() {
     if (loadingElement) loadingElement.classList.add('hidden');
 }
 
+// Show no products message
+function showNoProducts() {
+    const noProductsElement = document.getElementById('no-products');
+    if (noProductsElement) {
+        noProductsElement.classList.remove('hidden');
+    } else {
+        // Create and show no products message if element doesn't exist
+        const productsGrid = document.getElementById('products-grid');
+        const productsTable = document.getElementById('products-table');
+        
+        if (productsGrid) productsGrid.classList.add('hidden');
+        if (productsTable) productsTable.classList.add('hidden');
+        
+        // Show message in products section
+        const productsSection = document.querySelector('#products-grid').parentElement;
+        if (productsSection) {
+            const noProductsDiv = document.createElement('div');
+            noProductsDiv.id = 'no-products-message';
+            noProductsDiv.className = 'text-center py-12';
+            noProductsDiv.innerHTML = `
+                <div class="text-6xl text-gray-300 mb-4">
+                    <i class="fas fa-box-open"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-600 mb-2">Aucun produit disponible</h3>
+                <p class="text-gray-500">Les produits n'ont pas pu être chargés depuis Google Sheets.</p>
+                <button onclick="location.reload()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    Réessayer
+                </button>
+            `;
+            productsSection.appendChild(noProductsDiv);
+        }
+    }
+}
+
+// Display order products
+function displayOrderProducts(products) {
+    if (!products || products.length === 0) {
+        showNoProducts();
+        return;
+    }
+    
+    const productsGrid = document.getElementById('products-grid');
+    const productsTable = document.getElementById('products-table-body');
+    
+    if (productsGrid) {
+        productsGrid.innerHTML = '';
+        productsGrid.classList.remove('hidden');
+        
+        products.forEach(product => {
+            const productCard = createProductCard(product);
+            productsGrid.appendChild(productCard);
+        });
+    }
+    
+    if (productsTable) {
+        productsTable.innerHTML = '';
+        
+        products.forEach(product => {
+            const row = createProductTableRow(product);
+            productsTable.appendChild(row);
+        });
+    }
+}
+
+// Create product card
+function createProductCard(product) {
+    const card = document.createElement('div');
+    card.className = 'bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300';
+    
+    card.innerHTML = `
+        <div class="relative">
+            <img src="${product.image || 'https://via.placeholder.com/300x300?text=No+Image'}" 
+                 alt="${product.name}" 
+                 class="w-full h-48 object-cover">
+            <div class="absolute top-2 right-2">
+                <span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
+                    ${product.category || 'Produit'}
+                </span>
+            </div>
+        </div>
+        <div class="p-4">
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">${product.name}</h3>
+            <p class="text-gray-600 text-sm mb-3">${product.description || 'Description non disponible'}</p>
+            <div class="flex items-center justify-between">
+                <span class="text-2xl font-bold text-green-600">${product.price}</span>
+                <div class="flex items-center space-x-2">
+                    <input type="number" min="1" value="1" 
+                           class="w-16 px-2 py-1 border rounded text-center"
+                           id="qty-${product.id}">
+                    <button onclick="addToOrder('${product.id}')" 
+                            class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">
+                        <i class="fas fa-plus mr-1"></i>Ajouter
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return card;
+}
+
+// Create product table row
+function createProductTableRow(product) {
+    const row = document.createElement('tr');
+    row.className = 'hover:bg-gray-50';
+    
+    row.innerHTML = `
+        <td class="px-4 py-4">
+            <img src="${product.image || 'https://via.placeholder.com/60x60?text=No+Image'}" 
+                 alt="${product.name}" 
+                 class="w-12 h-12 object-cover rounded">
+        </td>
+        <td class="px-4 py-4">
+            <div class="font-medium text-gray-900">${product.name}</div>
+            <div class="text-sm text-gray-500">${product.description || ''}</div>
+        </td>
+        <td class="px-4 py-4">
+            <span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
+                ${product.category || 'Produit'}
+            </span>
+        </td>
+        <td class="px-4 py-4 font-semibold text-green-600">${product.price}</td>
+        <td class="px-4 py-4">
+            <input type="number" min="1" value="1" 
+                   class="w-16 px-2 py-1 border rounded text-center"
+                   id="table-qty-${product.id}">
+        </td>
+        <td class="px-4 py-4">
+            <button onclick="addToOrder('${product.id}', 'table')" 
+                    class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
+                Ajouter
+            </button>
+        </td>
+    `;
+    
+    return row;
+}
+
 // Show Error Message
 function showError(message) {
     showNotification(message, 'error');
@@ -974,3 +1153,389 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Add product to order
+function addToOrder(productId, source = 'grid') {
+    const product = orderProducts.find(p => p.id == productId);
+    if (!product) {
+        console.error('Product not found:', productId);
+        return;
+    }
+    
+    const qtyInput = source === 'table' 
+        ? document.getElementById(`table-qty-${productId}`)
+        : document.getElementById(`qty-${productId}`);
+    
+    const quantity = parseInt(qtyInput?.value || 1);
+    
+    // Check if product already in cart
+    const existingIndex = selectedProducts.findIndex(p => p.id == productId);
+    
+    if (existingIndex >= 0) {
+        // Update quantity
+        selectedProducts[existingIndex].quantity += quantity;
+    } else {
+        // Add new product
+        selectedProducts.push({
+            ...product,
+            quantity: quantity
+        });
+    }
+    
+    updateSelectedProductsSummary();
+    showNotification(`${product.name} ajouté au panier!`, 'success');
+    
+    // Reset quantity input
+    if (qtyInput) qtyInput.value = 1;
+}
+
+// Update selected products summary
+function updateSelectedProductsSummary() {
+    const summaryElement = document.getElementById('selected-products-summary');
+    const totalElement = document.getElementById('order-total');
+    
+    if (!summaryElement) return;
+    
+    if (selectedProducts.length === 0) {
+        summaryElement.innerHTML = `
+            <div class="bg-white border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <i class="fas fa-shopping-cart text-4xl text-gray-300 mb-3"></i>
+                <p class="text-gray-600">Aucun produit sélectionné</p>
+                <p class="text-sm text-gray-500 mt-1">Choisissez des produits ci-dessus pour commencer</p>
+            </div>
+        `;
+        if (totalElement) totalElement.textContent = '0.00 MAD';
+        return;
+    }
+    
+    let total = 0;
+    const productsHTML = selectedProducts.map(product => {
+        const price = parsePrice(product.price);
+        const subtotal = price * product.quantity;
+        total += subtotal;
+        
+        return `
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-2">
+                <div class="flex items-center space-x-3">
+                    <img src="${product.image}" alt="${product.name}" class="w-12 h-12 object-cover rounded">
+                    <div>
+                        <p class="font-medium text-gray-800">${product.name}</p>
+                        <p class="text-sm text-gray-600">${product.quantity} × ${price} MAD</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="font-semibold text-green-600">${subtotal.toFixed(2)} MAD</p>
+                    <button onclick="removeFromOrder('${product.id}')" class="text-red-500 text-sm hover:text-red-700">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    summaryElement.innerHTML = `
+        <div class="bg-white rounded-lg border p-4">
+            <h4 class="font-semibold text-gray-800 mb-3">Produits sélectionnés (${selectedProducts.length})</h4>
+            ${productsHTML}
+            <div class="border-t pt-3 mt-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-semibold">Total:</span>
+                    <span class="text-xl font-bold text-green-600">${total.toFixed(2)} MAD</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    if (totalElement) totalElement.textContent = total.toFixed(2) + ' MAD';
+}
+
+// Remove product from order
+function removeFromOrder(productId) {
+    selectedProducts = selectedProducts.filter(p => p.id != productId);
+    updateSelectedProductsSummary();
+    showNotification('Produit retiré du panier', 'info');
+}
+
+// Show notification (simple version)
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg transition-all duration-300 ${
+        type === 'success' ? 'bg-green-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        type === 'info' ? 'bg-blue-500 text-white' :
+        'bg-gray-500 text-white'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Filter products by category
+function filterProducts(category) {
+    const filteredProducts = category === 'all' 
+        ? orderProducts 
+        : orderProducts.filter(product => product.category === category);
+    
+    displayOrderProducts(filteredProducts);
+    
+    // Update filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-green-600', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-700');
+    });
+    
+    const activeBtn = document.querySelector(`[data-category="${category}"]`);
+    if (activeBtn) {
+        activeBtn.classList.remove('bg-gray-200', 'text-gray-700');
+        activeBtn.classList.add('active', 'bg-green-600', 'text-white');
+    }
+}
+
+// Toggle between grid and table view
+function toggleView(view) {
+    const gridView = document.getElementById('products-grid');
+    const tableView = document.getElementById('products-table');
+    const gridBtn = document.getElementById('grid-view-btn');
+    const tableBtn = document.getElementById('table-view-btn');
+    
+    if (view === 'table') {
+        gridView?.classList.add('hidden');
+        tableView?.classList.remove('hidden');
+        
+        gridBtn?.classList.remove('bg-green-600', 'text-white');
+        gridBtn?.classList.add('text-gray-700');
+        tableBtn?.classList.add('bg-green-600', 'text-white');
+        tableBtn?.classList.remove('text-gray-700');
+    } else {
+        gridView?.classList.remove('hidden');
+        tableView?.classList.add('hidden');
+        
+        tableBtn?.classList.remove('bg-green-600', 'text-white');
+        tableBtn?.classList.add('text-gray-700');
+        gridBtn?.classList.add('bg-green-600', 'text-white');
+        gridBtn?.classList.remove('text-gray-700');
+    }
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Order page loaded, initializing...');
+    
+    // Load products
+    loadOrderProducts();
+    
+    // Set up filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const category = this.getAttribute('data-category');
+            filterProducts(category);
+        });
+    });
+    
+    // Set up view toggle buttons
+    const gridBtn = document.getElementById('grid-view-btn');
+    const tableBtn = document.getElementById('table-view-btn');
+    
+    if (gridBtn) {
+        gridBtn.addEventListener('click', () => toggleView('grid'));
+    }
+    if (tableBtn) {
+        tableBtn.addEventListener('click', () => toggleView('table'));
+    }
+    
+    // Set up mobile menu
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    
+    if (mobileMenuBtn && mobileMenu) {
+        mobileMenuBtn.addEventListener('click', function() {
+            mobileMenu.classList.toggle('hidden');
+        });
+    }
+
+    // Load products and handle URL parameters
+    loadOrderProducts().then(() => {
+        handleProductFromURL();
+        // Initialize the order form total
+        updateOrderFormTotal();
+    });
+    
+    // Setup the order form submission
+    setupOrderForm();
+    
+    console.log('✅ Order page initialization complete');
+});
+
+// Checkout-focused workflow functions
+function toggleProductBrowser() {
+    const browserSection = document.getElementById('product-browser-section');
+    browserSection.classList.toggle('hidden');
+}
+
+function updateSelectedProductsSummary() {
+    const summaryContainer = document.getElementById('selected-products-summary');
+    
+    if (selectedProducts.length === 0) {
+        summaryContainer.innerHTML = `
+            <div class="bg-white border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <i class="fas fa-shopping-cart text-4xl text-gray-300 mb-3"></i>
+                <p class="text-gray-600">Aucun produit sélectionné</p>
+                <p class="text-sm text-gray-500 mt-1">Choisissez des produits pour commencer</p>
+            </div>
+        `;
+    } else {
+        let totalPrice = 0;
+        let summaryHTML = '<div class="bg-white rounded-lg shadow-lg p-6">';
+        summaryHTML += '<h3 class="text-xl font-semibold mb-4">Produits sélectionnés</h3>';
+        
+        selectedProducts.forEach((product, index) => {
+            // Parse price properly using helper function
+            const unitPrice = parsePrice(product.price);
+            const productTotal = unitPrice * product.quantity;
+            totalPrice += productTotal;
+            
+            summaryHTML += `
+                <div class="flex items-center justify-between py-3 border-b border-gray-200">
+                    <div class="flex-1">
+                        <h4 class="font-medium text-gray-800">${product.name}</h4>
+                        <p class="text-sm text-gray-600">Prix unitaire: ${unitPrice} MAD</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="flex items-center space-x-2">
+                            <button onclick="changeQuantity(${index}, -1)" class="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300">-</button>
+                            <span class="w-8 text-center">${product.quantity}</span>
+                            <button onclick="changeQuantity(${index}, 1)" class="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300">+</button>
+                        </div>
+                        <span class="font-semibold text-green-600 w-20 text-right">${productTotal.toFixed(2)} MAD</span>
+                        <button onclick="removeFromOrder(${index})" class="text-red-500 hover:text-red-700 ml-2">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        summaryHTML += `
+            <div class="mt-4 pt-4 border-t border-gray-300">
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-bold">Total:</span>
+                    <span class="text-2xl font-bold text-green-600">${totalPrice.toFixed(2)} MAD</span>
+                </div>
+                <button onclick="proceedToCheckout()" class="w-full mt-4 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors text-lg font-semibold">
+                    <i class="fas fa-check mr-2"></i>Confirmer la commande
+                </button>
+            </div>
+        </div>`;
+        
+        summaryContainer.innerHTML = summaryHTML;
+    }
+    
+    // Update the order form total as well
+    updateOrderFormTotal();
+}
+
+// Update the order form total display
+function updateOrderFormTotal() {
+    const orderTotalElement = document.getElementById('order-total');
+    if (orderTotalElement) {
+        const total = selectedProducts.reduce((sum, product) => {
+            const unitPrice = parsePrice(product.price);
+            return sum + (unitPrice * product.quantity);
+        }, 0);
+        
+        orderTotalElement.textContent = `${total.toFixed(2)} MAD`;
+    }
+    
+    // Enable/disable the submit button based on selected products
+    const submitButton = document.querySelector('button[type="submit"]');
+    if (submitButton) {
+        submitButton.disabled = selectedProducts.length === 0;
+    }
+}
+
+function changeQuantity(index, change) {
+    if (selectedProducts[index]) {
+        selectedProducts[index].quantity = Math.max(1, selectedProducts[index].quantity + change);
+        updateSelectedProductsSummary();
+    }
+}
+
+function removeFromOrder(index) {
+    selectedProducts.splice(index, 1);
+    updateSelectedProductsSummary();
+}
+
+function proceedToCheckout() {
+    if (selectedProducts.length === 0) {
+        alert('Veuillez sélectionner au moins un produit');
+        return;
+    }
+    
+    // Scroll to order form
+    document.getElementById('order-form-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+function handleProductFromURL() {
+    // First check localStorage for selected products
+    const storedProducts = localStorage.getItem('selectedProducts');
+    if (storedProducts) {
+        try {
+            const parsedProducts = JSON.parse(storedProducts);
+            console.log('Found stored products:', parsedProducts);
+            
+            // Add all stored products to selectedProducts
+            selectedProducts.push(...parsedProducts);
+            updateSelectedProductsSummary();
+            
+            // Clear localStorage after loading
+            localStorage.removeItem('selectedProducts');
+            console.log('Loaded', parsedProducts.length, 'products from localStorage');
+            return;
+        } catch (error) {
+            console.error('Error parsing stored products:', error);
+        }
+    }
+    
+    // Fallback: check URL parameters (legacy support)
+    const urlParams = new URLSearchParams(window.location.search);
+    const productName = urlParams.get('product');
+    
+    if (productName && orderProducts.length > 0) {
+        console.log('Looking for product:', productName);
+        
+        // Find the product by name
+        const product = orderProducts.find(p => p.name === productName);
+        
+        if (product) {
+            console.log('Found product:', product);
+            // Add to selected products if not already added
+            const existingIndex = selectedProducts.findIndex(p => p.name === product.name);
+            
+            if (existingIndex === -1) {
+                selectedProducts.push({
+                    ...product,
+                    quantity: 1
+                });
+                console.log('Added product to selection:', product.name);
+            } else {
+                selectedProducts[existingIndex].quantity += 1;
+                console.log('Increased quantity for:', product.name);
+            }
+            
+            updateSelectedProductsSummary();
+        } else {
+            console.log('Product not found:', productName);
+        }
+    }
+}

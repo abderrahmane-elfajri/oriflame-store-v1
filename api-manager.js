@@ -1,4 +1,4 @@
-// Comprehensive API Manager for O Store
+// Comprehensive API Manager for BellAura
 // This file manages all API calls with multiple fallback methods
 
 class OStoreAPIManager {
@@ -10,56 +10,7 @@ class OStoreAPIManager {
             ORDERS_SHEET: 'SHEETS_ORDERS'
         };
         
-        this.fallbackProducts = [
-            {
-                id: 1,
-                name: "Parfum Oriflame Eclat",
-                price: "850 DA",
-                category: "Parfum",
-                image: "https://images.unsplash.com/photo-1563170351-be82bc888aa4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-                description: "Parfum élégant aux notes florales"
-            },
-            {
-                id: 2,
-                name: "Rouge à Lèvres Velours",
-                price: "420 DA",
-                category: "Maquillage",
-                image: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-                description: "Rouge à lèvres longue tenue"
-            },
-            {
-                id: 3,
-                name: "Crème Hydratante Visage",
-                price: "650 DA",
-                category: "Soins",
-                image: "https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-                description: "Crème hydratante pour tous types de peau"
-            },
-            {
-                id: 4,
-                name: "Mascara Volume",
-                price: "380 DA",
-                category: "Maquillage",
-                image: "https://images.unsplash.com/photo-1631214540242-3a7976a8c7e0?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-                description: "Mascara pour un volume intense"
-            },
-            {
-                id: 5,
-                name: "Eau de Toilette Fresh",
-                price: "720 DA",
-                category: "Parfum",
-                image: "https://images.unsplash.com/photo-1541643600914-78b084683601?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-                description: "Eau de toilette fraîche et légère"
-            },
-            {
-                id: 6,
-                name: "Fond de Teint Natural",
-                price: "590 DA",
-                category: "Maquillage",
-                image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-                description: "Fond de teint effet naturel"
-            }
-        ];
+        // No more fallback products - only use Google Sheets data
     }
 
     // Get products with multiple fallback methods
@@ -111,9 +62,13 @@ class OStoreAPIManager {
             }
         }
         
-        // Method 4: Use fallback products
-        console.log('📦 Using fallback products');
-        return { success: true, products: this.fallbackProducts };
+        // Method 4: No fallback - return error if no products found
+        console.log('❌ No products found from Google Sheets');
+        return { 
+            success: false, 
+            products: [], 
+            error: 'Aucun produit trouvé dans Google Sheets. Vérifiez la configuration.' 
+        };
     }
 
     // Get products directly from Google Sheets API

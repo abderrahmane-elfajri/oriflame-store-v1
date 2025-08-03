@@ -1,4 +1,4 @@
-// Simple Google Sheets API wrapper for O Store
+// Simple Google Sheets API wrapper for BellAura
 class SheetsAPI {
     constructor(config) {
         this.config = config;

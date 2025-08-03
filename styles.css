@@ -248,3 +248,41 @@ input:focus, select:focus, textarea:focus {
         scroll-behavior: auto !important;
     }
 }
+
+/* Floating Command Button */
+#global-command-button {
+    animation: slideInFromBottom 0.3s ease-out;
+}
+
+#global-command-button button {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+#global-command-button button:hover {
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes slideInFromBottom {
+    from {
+        transform: translateY(100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Mobile responsiveness for floating button */
+@media (max-width: 640px) {
+    #global-command-button {
+        bottom: 20px !important;
+        right: 20px !important;
+    }
+    
+    #global-command-button button {
+        padding: 12px 20px !important;
+        font-size: 14px !important;
+    }
+}

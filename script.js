@@ -14,6 +14,7 @@ const CONFIG = {
 // Global variables
 let products = [];
 let filteredProducts = [];
+let selectedProducts = []; // Array to track selected products
 
 // DOM Content Loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -193,42 +194,38 @@ async function loadProducts() {
         showProductsLoading();
         
         console.log('🔄 Loading products from Google Sheets...');
+        // showNotification('Chargement des produits depuis Google Sheets...', 'info');
         
-        // First try to load from API Manager
-        if (typeof window.oStoreAPIManager !== 'undefined') {
-            console.log('📡 Trying API Manager...');
-            const result = await window.oStoreAPIManager.getProducts();
-            
-            if (result.success && result.products && result.products.length > 0) {
-                products = result.products;
-                filteredProducts = [...products];
-                displayProducts(filteredProducts);
-                console.log('✅ Products loaded from API Manager!');
-                return;
-            }
-        }
-        
-        // Fallback: Try multiple methods
+        // Try multiple methods to load products
         const loadedProducts = await tryLoadProducts();
         
         if (loadedProducts && loadedProducts.length > 0) {
             products = loadedProducts;
             filteredProducts = [...products];
             displayProducts(filteredProducts);
-            console.log('✅ Products loaded from fallback methods!');
-        } else {
-            // Last resort: fallback products
-            await loadFallbackProducts();
+            hideProductsLoading();
+            // showNotification(`✅ ${products.length} produits chargés depuis Google Sheets!`, 'success');
+            console.log('✅ Products loaded from Google Sheets!');
+            return;
         }
+        
+        // If no products found, show error and don't load fallbacks
+        console.warn('No products found in Google Sheets');
+        // showNotification('❌ Aucun produit trouvé dans Google Sheets. Vérifiez la configuration.', 'error');
+        
+        // Don't load fallback products - keep products array empty
+        products = [];
         
     } catch (error) {
         console.error('Error loading products:', error);
         
-        // Ensure fallback products are loaded
-        await loadFallbackProducts();
+        // showNotification('❌ Erreur lors du chargement des produits depuis Google Sheets', 'error');
+        
+        // Don't load fallback products - keep products array empty
+        products = [];
         
         trackEvent('error', {
-            error_message: 'Failed to load products from API, using fallback',
+            error_message: 'Failed to load products from Google Sheets',
             error_details: error.message
         });
     }
@@ -241,33 +238,29 @@ async function tryLoadProducts() {
         try {
             console.log('📡 Method 1: Using SheetsAPI...');
             const sheetsApi = new SheetsAPI(CONFIG);
-            const data = await sheetsApi.getSpreadsheetData(`${CONFIG.PRODUCTS_SHEET}!A:E`);
+            const data = await sheetsApi.getSpreadsheetData(`${CONFIG.PRODUCTS_SHEET}!A:G`);
             
             if (data.values && data.values.length > 1) {
-                return parseProductsFromSheets(data.values);
+                const parsedProducts = parseProductsFromSheets(data.values);
+                if (parsedProducts.length > 0) {
+                    return parsedProducts;
+                }
             }
         } catch (error) {
             console.warn('SheetsAPI failed:', error.message);
         }
     }
     
-    // Method 2: Use local API if available
-    if (typeof window.oStoreAPI !== 'undefined') {
-        try {
-            console.log('📡 Method 2: Using local API...');
-            const result = await window.oStoreAPI.getProducts();
-            if (result.success && result.products) {
-                return result.products;
-            }
-        } catch (error) {
-            console.warn('Local API failed:', error.message);
-        }
-    }
-    
-    // Method 3: Direct Google Sheets API
+    // Method 2: Direct Google Sheets API with correct range
     try {
-        console.log('📡 Method 3: Direct Google Sheets API...');
+        console.log('📡 Method 2: Direct Google Sheets API...');
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${CONFIG.PRODUCTS_SHEET}!A:G?key=${CONFIG.SHEETS_API_KEY}`;
+        
+        console.log('🔗 Trying to access Google Sheets with:');
+        console.log('   📋 Spreadsheet ID:', CONFIG.SPREADSHEET_ID);
+        console.log('   📄 Sheet Name:', CONFIG.PRODUCTS_SHEET);
+        console.log('   🔑 API Key (first 10 chars):', CONFIG.SHEETS_API_KEY.substring(0, 10) + '...');
+        console.log('   🌐 Full URL:', url);
         
         const response = await fetch(url, {
             method: 'GET',
@@ -275,19 +268,31 @@ async function tryLoadProducts() {
             mode: 'cors'
         });
         
+        console.log('📊 API Response Status:', response.status);
+        
         if (response.ok) {
             const data = await response.json();
+            console.log('📋 API Response Data:', data);
+            
             if (data.values && data.values.length > 1) {
-                return parseProductsFromSheets(data.values);
+                const parsedProducts = parseProductsFromSheets(data.values);
+                if (parsedProducts.length > 0) {
+                    return parsedProducts;
+                }
+            } else {
+                console.warn('No data found in sheet or empty sheet');
             }
+        } else {
+            const errorText = await response.text();
+            console.error('API Error Response:', errorText);
         }
     } catch (error) {
         console.warn('Direct API failed:', error.message);
     }
     
-    // Method 4: Alternative Google endpoint
+    // Method 3: Alternative Google endpoint (CSV format)
     try {
-        console.log('📡 Method 4: Alternative Google endpoint...');
+        console.log('📡 Method 3: Alternative Google endpoint...');
         const altUrl = `https://docs.google.com/spreadsheets/d/${CONFIG.SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${CONFIG.PRODUCTS_SHEET}`;
         
         const response = await fetch(altUrl);
@@ -301,11 +306,44 @@ async function tryLoadProducts() {
             );
             
             if (values.length > 1) {
-                return parseProductsFromSheets(values);
+                const parsedProducts = parseProductsFromSheets(values);
+                if (parsedProducts.length > 0) {
+                    return parsedProducts;
+                }
             }
         }
     } catch (error) {
         console.warn('Alternative endpoint failed:', error.message);
+    }
+    
+    // Method 4: Try with different sheet name variations
+    const sheetVariations = ['SHEETS_PRODUCTS', 'Products', 'Produits', 'Sheet1'];
+    
+    for (const sheetName of sheetVariations) {
+        try {
+            console.log(`📡 Method 4: Trying sheet name "${sheetName}"...`);
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${sheetName}!A:G?key=${CONFIG.SHEETS_API_KEY}`;
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+                mode: 'cors'
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.values && data.values.length > 1) {
+                    console.log(`✅ Found data in sheet: ${sheetName}`);
+                    const parsedProducts = parseProductsFromSheets(data.values);
+                    if (parsedProducts.length > 0) {
+                        return parsedProducts;
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn(`Sheet ${sheetName} failed:`, error.message);
+        }
     }
     
     return null;
@@ -315,96 +353,116 @@ async function tryLoadProducts() {
 function parseProductsFromSheets(values) {
     console.log('📊 Raw Google Sheets data:', values);
     
+    if (!values || values.length < 2) {
+        console.warn('No valid data found in sheets');
+        return [];
+    }
+    
     const products = [];
+    const headers = values[0];
+    console.log('📋 Headers found:', headers);
     
     // Skip header row, start from row 1
     for (let i = 1; i < values.length; i++) {
         const row = values[i];
-        if (!row || row.length === 0 || !row[1]) continue;
+        if (!row || row.length === 0) continue;
         
-        // Based on your Google Sheets structure:
-        // A: ID, B: Name, C: Price, D: Category, E: Image_URL, F: Description, G: Created
+        // Try to find the name column (could be at different positions)
+        let name = '';
+        let price = '';
+        let category = '';
+        let image = '';
+        let description = '';
+        let id = '';
+        
+        // Flexible parsing - try different column arrangements
+        if (row.length >= 2) {
+            // Common arrangements:
+            // A: ID, B: Name, C: Price, D: Category, E: Image_URL, F: Description
+            // OR A: Name, B: Price, C: Category, D: Image, E: Description
+            
+            if (row.length >= 6) {
+                // Full format: ID, Name, Price, Category, Image, Description
+                id = row[0] || i;
+                name = row[1] || '';
+                price = row[2] || '';
+                category = row[3] || 'Général';
+                image = row[4] || '';
+                description = row[5] || '';
+            } else if (row.length >= 5) {
+                // Without ID: Name, Price, Category, Image, Description
+                id = i;
+                name = row[0] || '';
+                price = row[1] || '';
+                category = row[2] || 'Général';
+                image = row[3] || '';
+                description = row[4] || '';
+            } else if (row.length >= 3) {
+                // Minimal: Name, Price, Category
+                id = i;
+                name = row[0] || '';
+                price = row[1] || '';
+                category = row[2] || 'Général';
+                image = '';
+                description = '';
+            } else {
+                // Very minimal: just name and price
+                id = i;
+                name = row[0] || '';
+                price = row[1] || '';
+                category = 'Général';
+                image = '';
+                description = '';
+            }
+        }
+        
+        // Skip rows without a name
+        if (!name || name.trim() === '') continue;
+        
+        // Clean and format the data
+        name = name.trim();
+        price = price.toString().trim();
+        
+        // Add MAD currency if not present and price is a number
+        if (price && !price.includes('MAD') && !price.includes('€') && !isNaN(parseFloat(price))) {
+            price = price + ' MAD';
+        }
+        
+        category = category.trim() || 'Général';
+        
+        // Use default image if none provided
+        if (!image || image.trim() === '') {
+            const defaultImages = {
+                'Parfum': 'https://images.unsplash.com/photo-1563170351-be82bc888aa4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+                'Maquillage': 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+                'Soins': 'https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
+            };
+            image = defaultImages[category] || defaultImages['Soins'];
+        }
+        
+        description = description.trim() || 'Description non disponible';
+        
         const product = {
-            id: row[0] || i,
-            name: row[1] || '',
-            price: row[2] || '',
-            category: row[3] || 'Général',
-            image: row[4] || 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-            description: row[5] || 'Description non disponible',
-            created: row[6] || new Date().toISOString()
+            id: id,
+            name: name,
+            price: price,
+            category: category,
+            image: image,
+            description: description,
+            created: new Date().toISOString()
         };
         
-        if (product.name && product.name.trim() !== '') {
-            products.push(product);
-            console.log(`✅ Parsed: ${product.name} - ${product.price} (${product.category})`);
-        }
+        products.push(product);
+        console.log(`✅ Parsed: ${product.name} - ${product.price} (${product.category})`);
     }
     
     console.log(`📦 Total products parsed: ${products.length}`);
+    
+    if (products.length === 0) {
+        console.warn('No valid products found in the data');
+    }
+    
     return products;
-}
-
-// Fallback products when API fails
-async function loadFallbackProducts() {
-    const fallbackProducts = [
-        {
-            id: 1,
-            name: "Parfum Oriflame Eclat",
-            price: "850 DA",
-            category: "Parfum",
-            image: "https://images.unsplash.com/photo-1563170351-be82bc888aa4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-            description: "Parfum élégant aux notes florales"
-        },
-        {
-            id: 2,
-            name: "Rouge à Lèvres Velours",
-            price: "420 DA",
-            category: "Maquillage",
-            image: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-            description: "Rouge à lèvres longue tenue"
-        },
-        {
-            id: 3,
-            name: "Crème Hydratante Visage",
-            price: "650 DA",
-            category: "Soins",
-            image: "https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-            description: "Crème hydratante pour tous types de peau"
-        },
-        {
-            id: 4,
-            name: "Mascara Volume",
-            price: "380 DA",
-            category: "Maquillage",
-            image: "https://images.unsplash.com/photo-1631214540242-3a7976a8c7e0?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-            description: "Mascara pour un volume intense"
-        },
-        {
-            id: 5,
-            name: "Eau de Toilette Fresh",
-            price: "720 DA",
-            category: "Parfum",
-            image: "https://images.unsplash.com/photo-1541643600914-78b084683601?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-            description: "Eau de toilette fraîche et légère"
-        },
-        {
-            id: 6,
-            name: "Fond de Teint Natural",
-            price: "590 DA",
-            category: "Maquillage",
-            image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-            description: "Fond de teint effet naturel"
-        }
-    ];
-    
-    // Simulate loading delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    products = fallbackProducts;
-    filteredProducts = [...products];
-    displayProducts(filteredProducts);
-    hideProductsLoading();
-    console.log('✅ Fallback products loaded');
 }
 
 // Show notification to user
@@ -462,7 +520,7 @@ function displayProducts(productsToShow) {
                      class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110"
                      loading="lazy">
                 <div class="absolute top-4 right-4">
-                    <span class="price-badge">${product.price}€</span>
+                    <span class="price-badge">${product.price}</span>
                 </div>
             </div>
             <div class="p-6">
@@ -472,9 +530,10 @@ function displayProducts(productsToShow) {
                     <span class="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-full">
                         ${product.category}
                     </span>
-                    <button onclick="selectProduct('${product.name}')" 
-                            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors btn-ripple">
-                        <i class="fas fa-shopping-cart mr-2"></i>Commander
+                    <button onclick="toggleProductSelection('${product.name}')" 
+                            id="btn-${product.name.replace(/\s+/g, '-')}"
+                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors btn-ripple">
+                        <i class="fas fa-plus mr-2"></i>Sélectionner
                     </button>
                 </div>
             </div>
@@ -515,17 +574,114 @@ function setupCategoryFilters() {
     });
 }
 
-// Select Product for Order
-function selectProduct(productName) {
-    // Redirect to order page with product parameter
-    const params = new URLSearchParams();
-    params.append('product', productName);
-    window.location.href = `order.html?${params.toString()}`;
+// Toggle Product Selection
+function toggleProductSelection(productName) {
+    const product = products.find(p => p.name === productName);
+    if (!product) return;
+    
+    const existingIndex = selectedProducts.findIndex(p => p.name === productName);
+    const buttonId = `btn-${productName.replace(/\s+/g, '-')}`;
+    const button = document.getElementById(buttonId);
+    
+    if (existingIndex === -1) {
+        // Add to selection
+        selectedProducts.push({...product, quantity: 1});
+        if (button) {
+            button.className = 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors btn-ripple';
+            button.innerHTML = '<i class="fas fa-check mr-2"></i>Sélectionné';
+        }
+        showNotification(`${product.name} ajouté à la sélection!`, 'success');
+    } else {
+        // Remove from selection
+        selectedProducts.splice(existingIndex, 1);
+        if (button) {
+            button.className = 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors btn-ripple';
+            button.innerHTML = '<i class="fas fa-plus mr-2"></i>Sélectionner';
+        }
+        showNotification(`${product.name} retiré de la sélection`, 'info');
+    }
+    
+    updateGlobalCommandButton();
     
     trackEvent('product_select', {
         product_name: productName,
-        redirect_to: 'order_page'
+        action: existingIndex === -1 ? 'add' : 'remove',
+        total_selected: selectedProducts.length
     });
+}
+
+// Update Global Command Button
+function updateGlobalCommandButton() {
+    let commandButton = document.getElementById('global-command-button');
+    
+    if (selectedProducts.length === 0) {
+        if (commandButton) {
+            commandButton.remove();
+        }
+    } else {
+        if (!commandButton) {
+            // Create the button
+            commandButton = document.createElement('div');
+            commandButton.id = 'global-command-button';
+            commandButton.className = 'fixed bottom-6 right-6 z-50';
+            commandButton.innerHTML = `
+                <button onclick="proceedWithSelectedProducts()" 
+                        class="bg-green-600 text-white px-8 py-4 rounded-full shadow-lg hover:bg-green-700 transition-all transform hover:scale-105">
+                    <i class="fas fa-shopping-cart mr-3"></i>
+                    <span id="command-button-text">Commander (${selectedProducts.length})</span>
+                </button>
+            `;
+            document.body.appendChild(commandButton);
+        } else {
+            // Update existing button
+            const buttonText = document.getElementById('command-button-text');
+            if (buttonText) {
+                buttonText.textContent = `Commander (${selectedProducts.length})`;
+            }
+        }
+    }
+}
+
+// Proceed with Selected Products
+function proceedWithSelectedProducts() {
+    if (selectedProducts.length === 0) {
+        alert('Veuillez sélectionner au moins un produit');
+        return;
+    }
+    
+    // Store selected products in localStorage for the order page
+    localStorage.setItem('selectedProducts', JSON.stringify(selectedProducts));
+    
+    // Redirect to order page
+    window.location.href = 'order.html';
+    
+    trackEvent('proceed_to_order', {
+        total_products: selectedProducts.length,
+        product_names: selectedProducts.map(p => p.name)
+    });
+}
+
+// Keep the old selectProduct function for compatibility (if needed)
+function selectProduct(productName) {
+    // For backward compatibility - just toggle selection
+    toggleProductSelection(productName);
+}
+
+// Simple notification function
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium ${
+        type === 'success' ? 'bg-green-600' : 
+        type === 'error' ? 'bg-red-600' : 
+        type === 'info' ? 'bg-blue-600' : 'bg-gray-600'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
 }
 
 // Show/Hide Loading States
@@ -576,11 +732,38 @@ function trackEvent(eventName, parameters = {}) {
 // Contact Methods
 function openWhatsApp() {
     const phone = '1234567890'; // Replace with your WhatsApp number
-    const message = encodeURIComponent('Bonjour! Je suis intéressé(e) par vos produits Oriflame.');
+    const message = encodeURIComponent('Bonjour! Je suis intéressé(e) par vos produits BellAura.');
     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
     
     trackEvent('contact_whatsapp');
 }
+
+// Manual refresh products from Google Sheets (REMOVED - no longer needed)
+/*
+async function refreshProducts() {
+    const refreshBtn = document.querySelector('button[onclick="refreshProducts()"]');
+    const originalText = refreshBtn.innerHTML;
+    
+    try {
+        // Show loading state
+        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Actualisation...';
+        refreshBtn.disabled = true;
+        
+        showNotification('🔄 Actualisation des produits depuis Google Sheets...', 'info');
+        
+        // Force reload products
+        await loadProducts();
+        
+    } catch (error) {
+        console.error('Error refreshing products:', error);
+        showNotification('❌ Erreur lors de l\'actualisation', 'error');
+    } finally {
+        // Restore button state
+        refreshBtn.innerHTML = originalText;
+        refreshBtn.disabled = false;
+    }
+}
+*/
 
 // Initialize Google Sheets Integration
 function initializeGoogleSheets() {
